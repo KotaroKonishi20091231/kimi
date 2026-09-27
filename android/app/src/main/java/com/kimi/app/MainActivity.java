@@ -226,6 +226,8 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void listenOnce() { main.post(MainActivity.this::doListenOnce); }
         @JavascriptInterface public void pauseWake() { main.post(MainActivity.this::doPause); }
         @JavascriptInterface public void resumeWake() { main.post(MainActivity.this::doResume); }
+        /** 返事のあと、「きみ」と呼ばなくても続けて話せるように少しのあいだ聞き取る */
+        @JavascriptInterface public void followUp() { main.post(MainActivity.this::doFollowUp); }
         /** インターネットで調べる。結果は poll() に {type:"net", id, text} として届く */
         @JavascriptInterface public void fetch(String id, String kind, String arg) {
             net.execute(() -> {
@@ -344,6 +346,16 @@ public class MainActivity extends Activity {
         stopRecognizer();
     }
 
+    private void doFollowUp() {
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) { doResume(); return; }
+        setMode("command");
+        softBeep();
+        main.removeCallbacks(commandTimeout);
+        main.postDelayed(commandTimeout, 7000);
+        stopRecognizer();
+        startListening();
+    }
+
     private void doResume() {
         setMode(wakeOn ? "waiting" : "off");
         if (wakeOn) startListening();
@@ -455,6 +467,15 @@ public class MainActivity extends Activity {
         @Override public void onEndOfSpeech() { }
         @Override public void onEvent(int eventType, Bundle params) { }
     };
+
+    /** 続けて話せる合図の、小さく短い音 */
+    private void softBeep() {
+        try {
+            ToneGenerator tone = new ToneGenerator(AudioManager.STREAM_MUSIC, 35);
+            tone.startTone(ToneGenerator.TONE_PROP_ACK, 90);
+            main.postDelayed(tone::release, 300);
+        } catch (Exception ignored) { }
+    }
 
     private void beep() {
         try {
