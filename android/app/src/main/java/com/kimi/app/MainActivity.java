@@ -237,6 +237,16 @@ public class MainActivity extends Activity {
                 emitNet(id, out);
             });
         }
+        /** スマホの操作（リマインダー・電話・メッセージ・アプリ・地図）。結果は poll() に {type:"net", id, text} として届く */
+        @JavascriptInterface public void act(String id, String kind, String argsJson) {
+            main.post(() -> {
+                JSONObject args;
+                try { args = new JSONObject(argsJson == null || argsJson.isEmpty() ? "{}" : argsJson); }
+                catch (Exception e) { emitNet(id, "ERROR: 引数が読み取れません"); return; }
+                try { Actions.run(MainActivity.this, kind, args, text -> emitNet(id, text)); }
+                catch (Exception e) { emitNet(id, "ERROR: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage())); }
+            });
+        }
         @JavascriptInterface public String poll() {
             synchronized (events) { return events.isEmpty() ? "" : events.poll(); }
         }
@@ -293,8 +303,28 @@ public class MainActivity extends Activity {
         return false;
     }
 
+    // 連絡先・通知など、マイク以外の許可
+    private static final int REQ_OTHER = 2;
+    private Runnable otherGranted = null, otherDenied = null;
+
+    void withPermission(String permission, Runnable granted, Runnable denied) {
+        if (permission == null || checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED) { granted.run(); return; }
+        if (otherDenied != null) otherDenied.run(); // 前の確認が残っていたら、そちらは諦める
+        otherGranted = granted;
+        otherDenied = denied;
+        requestPermissions(new String[]{permission}, REQ_OTHER);
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        if (requestCode == REQ_OTHER) {
+            Runnable g = otherGranted, d = otherDenied;
+            otherGranted = otherDenied = null;
+            boolean ok = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+            Runnable r = ok ? g : d;
+            if (r != null) r.run();
+            return;
+        }
         if (requestCode != REQ_MIC) return;
         Runnable then = afterPermission;
         afterPermission = null;
@@ -486,10 +516,24 @@ public class MainActivity extends Activity {
     }
 
     // ---------- 画面の出入り ----------
+    /** 開いている KIMI（リマインダーの時刻に読み上げるため） */
+    static volatile MainActivity current = null;
+
+    /** KIMI を開いているときにリマインダーの時刻が来たら、通知に加えて読み上げる */
+    void announce(String text) {
+        main.post(() -> {
+            if (!resumed) return;
+            stopRecognizer();
+            doSpeak("リマインダーです。" + text, 1.0f);
+            emit("reminder", text);
+        });
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
         resumed = true;
+        current = this;
         web.onResume();
         if ("waiting".equals(mode) || "command".equals(mode)) startListening();
     }
@@ -497,6 +541,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         resumed = false;
+        if (current == this) current = null;
         stopRecognizer();
         web.onPause();
         super.onPause();
