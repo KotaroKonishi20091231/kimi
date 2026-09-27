@@ -30,11 +30,22 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -162,9 +173,30 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void listenOnce() { main.post(MainActivity.this::doListenOnce); }
         @JavascriptInterface public void pauseWake() { main.post(MainActivity.this::doPause); }
         @JavascriptInterface public void resumeWake() { main.post(MainActivity.this::doResume); }
+        /** インターネットで調べる。結果は poll() に {type:"net", id, text} として届く */
+        @JavascriptInterface public void fetch(String id, String kind, String arg) {
+            net.execute(() -> {
+                String out;
+                try { out = Web.run(kind, arg); }
+                catch (Exception e) { out = "ERROR: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()); }
+                emitNet(id, out);
+            });
+        }
         @JavascriptInterface public String poll() {
             synchronized (events) { return events.isEmpty() ? "" : events.poll(); }
         }
+    }
+
+    private final ExecutorService net = Executors.newFixedThreadPool(3);
+
+    private void emitNet(String id, String text) {
+        try {
+            JSONObject o = new JSONObject();
+            o.put("type", "net");
+            o.put("id", id);
+            o.put("text", text);
+            synchronized (events) { events.add(o.toString()); }
+        } catch (Exception ignored) { }
     }
 
     private void emit(String type, String text) {
