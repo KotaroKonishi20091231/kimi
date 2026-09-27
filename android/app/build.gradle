@@ -1,0 +1,38 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.kimi.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.kimi.app'
+        minSdk 26
+        targetSdk 34
+        // CI の実行番号をバージョンにして、上書きインストールできるようにする
+        versionCode (System.getenv('GITHUB_RUN_NUMBER') ?: '1').toInteger()
+        versionName "1.${System.getenv('GITHUB_RUN_NUMBER') ?: '0'}"
+    }
+
+    signingConfigs {
+        kimi {
+            storeFile file('../kimi.keystore')
+            storePassword 'kimikimi'
+            keyAlias 'kimi'
+            keyPassword 'kimikimi'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.kimi
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

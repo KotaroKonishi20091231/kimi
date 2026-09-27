@@ -1,0 +1,58 @@
+name: KIMI アプリを作る
+
+on:
+  push:
+    paths:
+      - 'android/**'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      # 署名の鍵は最初の1回だけ作ってリポジトリに保存する（同じ鍵で署名すると上書きインストールできる）
+      - name: Create signing key (first run only)
+        working-directory: android
+        run: |
+          if [ ! -f kimi.keystore ]; then
+            keytool -genkeypair -keystore kimi.keystore -storepass kimikimi -keypass kimikimi \
+              -alias kimi -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=KIMI"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add kimi.keystore
+            git commit -m "Add app signing key"
+            git push
+          fi
+
+      - name: Build APK
+        working-directory: android
+        run: gradle assembleRelease --no-daemon --stacktrace
+
+      - name: Rename APK
+        run: cp android/app/build/outputs/apk/release/app-release.apk KIMI.apk
+
+      - name: Publish for download
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: app-latest
+          name: KIMI アプリ
+          body: |
+            スマホでこのページを開き、下の「KIMI.apk」を押してダウンロードしてください。
+            ダウンロードが終わったら、通知やダウンロード一覧から KIMI.apk を開くとインストールできます。
+          files: KIMI.apk
+          make_latest: true

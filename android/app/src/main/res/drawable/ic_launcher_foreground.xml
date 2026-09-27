@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- KIMI のコア: 外側のリングと、光る球 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M54,54m-27,0a27,27 0 1,0 54,0a27,27 0 1,0 -54,0"
+        android:strokeWidth="2"
+        android:strokeColor="#5EE7FF"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M54,54m-21,0a21,21 0 1,0 42,0a21,21 0 1,0 -42,0"
+        android:strokeWidth="1"
+        android:strokeColor="#668F7BFF"
+        android:fillColor="#00000000" />
+    <path android:pathData="M54,54m-15,0a15,15 0 1,0 30,0a15,15 0 1,0 -30,0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="49"
+                android:centerY="48"
+                android:gradientRadius="20">
+                <item android:offset="0" android:color="#FFFFFFFF" />
+                <item android:offset="0.3" android:color="#FF5EE7FF" />
+                <item android:offset="0.7" android:color="#FF2A6CFF" />
+                <item android:offset="1" android:color="#FF8F7BFF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>
