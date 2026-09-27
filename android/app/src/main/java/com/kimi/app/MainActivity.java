@@ -59,7 +59,7 @@ public class MainActivity extends Activity {
     private static final String START_URL = "https://claude.ai/artifact/DkCrGBvkhkdMQ2TU8aZNQB";
     private static final int REQ_MIC = 1;
     private static final Pattern WAKE = Pattern.compile(
-            "^\\s*(?:ねえ|ねぇ|ねー|おい|ヘイ|hey)?[、,。\\s]*(?:きみ|キミ|君|黄身|気味|kimi)(?:ちゃん|さん|くん)?[、,。!！?？\\s]*",
+            "(?:ねえ|ねぇ|ねー|おい|ヘイ|hey)?[、,。\\s]*(?:きみ|キミ|君|黄身|気味|kimi|キーミ)(?:ちゃん|さん|くん)?[、,。!！?？\\s]*",
             Pattern.CASE_INSENSITIVE);
 
     /** claude.ai の上のバーを隠して KIMI を全画面にするスクリプト（assets/fullscreen.js） */
@@ -95,11 +95,37 @@ public class MainActivity extends Activity {
     private Runnable afterPermission = null;
 
     private final Runnable restart = () -> {
-        if (("waiting".equals(mode) || "command".equals(mode)) && !speaking) startListening();
+        if (("waiting".equals(mode) || "command".equals(mode)) && !ttsBusy()) startListening();
     };
+
+    private boolean ttsBusy() {
+        try { return tts != null && tts.isSpeaking(); } catch (Exception e) { return false; }
+    }
+
+    /** 「きみ」が文のはじめのほう（6文字以内）にあれば、その一致を返す */
+    private static Matcher wakeMatch(String t) {
+        Matcher m = WAKE.matcher(t);
+        return (m.find() && m.start() <= 6) ? m : null;
+    }
+
+    private void setMode(String m) {
+        mode = m;
+        emitState();
+    }
+
+    /** ページに今の状態を知らせる（画面の表示をスマホ側の状態と必ずそろえる） */
+    private void emitState() {
+        try {
+            JSONObject o = new JSONObject();
+            o.put("type", "state");
+            o.put("text", mode);
+            o.put("wake", wakeOn);
+            synchronized (events) { events.add(o.toString()); }
+        } catch (Exception ignored) { }
+    }
     private final Runnable commandTimeout = () -> {
         if ("command".equals(mode)) {
-            mode = wakeOn ? "waiting" : "off";
+            setMode(wakeOn ? "waiting" : "off");
             emit("idle", null);
             if (!wakeOn) stopRecognizer();
         }
@@ -170,7 +196,13 @@ public class MainActivity extends Activity {
             @Override public void onStart(String id) { speaking = true; }
             @Override public void onDone(String id) { finishedSpeaking(id); }
             @Override public void onError(String id) { finishedSpeaking(id); }
+            @Override public void onStop(String id, boolean interrupted) { finishedSpeaking(id); }
         });
+
+        // 「きみ」の待ち受けは、前回オフにしていなければ起動したときから始める
+        if (getSharedPreferences("kimi", MODE_PRIVATE).getBoolean("wake", true)) {
+            main.postDelayed(() -> doSetWake(true), 1200);
+        }
 
         Uri data = getIntent() != null ? getIntent().getData() : null;
         web.loadUrl(data != null ? data.toString() : START_URL);
@@ -189,6 +221,8 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void stopSpeaking() { main.post(() -> { tts.stop(); speaking = false; }); }
         @JavascriptInterface public boolean isSpeaking() { return speaking; }
         @JavascriptInterface public void setWake(boolean on) { main.post(() -> doSetWake(on)); }
+        @JavascriptInterface public boolean isWakeOn() { return wakeOn; }
+        @JavascriptInterface public String getMode() { return mode; }
         @JavascriptInterface public void listenOnce() { main.post(MainActivity.this::doListenOnce); }
         @JavascriptInterface public void pauseWake() { main.post(MainActivity.this::doPause); }
         @JavascriptInterface public void resumeWake() { main.post(MainActivity.this::doResume); }
@@ -236,7 +270,11 @@ public class MainActivity extends Activity {
         tts.setSpeechRate(rate > 0 ? rate : 1.0f);
         String id = "kimi" + (++utteranceSeq);
         speaking = true;
-        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, id);
+        int r = tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, id);
+        if (r != TextToSpeech.SUCCESS) { // 読み上げを始められなかったら、すぐに終わったことにする
+            speaking = false;
+            emit("spoken", null);
+        }
     }
 
     private void finishedSpeaking(String id) {
@@ -262,7 +300,8 @@ public class MainActivity extends Activity {
             if (then != null) then.run();
         } else {
             wakeOn = false;
-            mode = "off";
+            getSharedPreferences("kimi", MODE_PRIVATE).edit().putBoolean("wake", false).apply();
+            setMode("off");
             emit("wakeoff", null);
             emit("error", "マイクの使用が許可されませんでした。スマホの設定 → アプリ → KIMI → 権限 から、マイクを許可してください。");
         }
@@ -270,17 +309,21 @@ public class MainActivity extends Activity {
 
     private void doSetWake(boolean on) {
         if (on && !ensureMic(() -> doSetWake(true))) return;
+        boolean changed = wakeOn != on;
         wakeOn = on;
+        getSharedPreferences("kimi", MODE_PRIVATE).edit().putBoolean("wake", on).apply();
+        if (changed) toast(on ? "「きみ」の待ち受けを始めました" : "「きみ」の待ち受けを止めました");
+        emitState();
         if (on) {
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             if ("off".equals(mode)) {
-                mode = "waiting";
+                setMode("waiting");
                 startListening();
             }
         } else {
             getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             if ("waiting".equals(mode)) {
-                mode = "off";
+                setMode("off");
                 stopRecognizer();
             }
         }
@@ -297,17 +340,17 @@ public class MainActivity extends Activity {
 
     private void doPause() {
         main.removeCallbacks(commandTimeout);
-        mode = "paused";
+        setMode("paused");
         stopRecognizer();
     }
 
     private void doResume() {
-        mode = wakeOn ? "waiting" : "off";
+        setMode(wakeOn ? "waiting" : "off");
         if (wakeOn) startListening();
     }
 
     private void enterCommand() {
-        mode = "command";
+        setMode("command");
         beep();
         emit("wake", null);
         main.removeCallbacks(commandTimeout);
@@ -351,7 +394,7 @@ public class MainActivity extends Activity {
 
     private void handleCommand(String text) {
         main.removeCallbacks(commandTimeout);
-        mode = "paused";
+        setMode("paused");
         stopRecognizer();
         emit("command", text);
     }
@@ -362,8 +405,8 @@ public class MainActivity extends Activity {
             if (list == null || list.isEmpty()) { restartSoon(200); return; }
             if ("waiting".equals(mode)) {
                 for (String t : list) {
-                    Matcher m = WAKE.matcher(t);
-                    if (m.lookingAt()) {
+                    Matcher m = wakeMatch(t);
+                    if (m != null) {
                         String rest = t.substring(m.end()).trim();
                         if (rest.length() >= 2) { handleCommand(rest); return; }
                         enterCommand();
@@ -374,8 +417,8 @@ public class MainActivity extends Activity {
                 restartSoon(150);
             } else if ("command".equals(mode)) {
                 String t = list.get(0);
-                Matcher m = WAKE.matcher(t);
-                String cleaned = m.lookingAt() ? t.substring(m.end()).trim() : t.trim();
+                Matcher m = wakeMatch(t);
+                String cleaned = m != null ? t.substring(m.end()).trim() : t.trim();
                 if (cleaned.isEmpty()) { restartSoon(150); return; }
                 handleCommand(cleaned);
             }
@@ -385,13 +428,13 @@ public class MainActivity extends Activity {
             ArrayList<String> list = partial.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
             if (list == null || list.isEmpty()) return;
             String t = list.get(0);
-            if ("command".equals(mode) || ("waiting".equals(mode) && WAKE.matcher(t).lookingAt())) emit("heard", t);
+            if ("command".equals(mode) || ("waiting".equals(mode) && wakeMatch(t) != null)) emit("heard", t);
         }
 
         @Override public void onError(int error) {
             if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
                 wakeOn = false;
-                mode = "off";
+                setMode("off");
                 emit("wakeoff", null);
                 emit("error", "マイクの使用が許可されていません。");
                 return;
