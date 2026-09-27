@@ -62,6 +62,30 @@ public class MainActivity extends Activity {
             "^\\s*(?:ねえ|ねぇ|ねー|おい|ヘイ|hey)?[、,。\\s]*(?:きみ|キミ|君|黄身|気味|kimi)(?:ちゃん|さん|くん)?[、,。!！?？\\s]*",
             Pattern.CASE_INSENSITIVE);
 
+    /**
+     * claude.ai の上のバー（共有・チャットなど）を隠すため、KIMI の画面が入っている
+     * いちばん大きい枠を全画面に広げる。確認ダイアログが出ている間だけは元に戻して見えるようにする。
+     */
+    private static final String FULLSCREEN_JS =
+            "(function(){if(window.__kimiFull)return;window.__kimiFull=true;"
+            + "var st=document.createElement('style');"
+            + "st.textContent='.kimi-full{position:fixed!important;left:0!important;top:0!important;right:0!important;bottom:0!important;"
+            + "width:100vw!important;height:100%!important;max-width:none!important;max-height:none!important;margin:0!important;"
+            + "border:0!important;border-radius:0!important;transform:none!important;z-index:2147483646!important;background:#05070D!important}"
+            + "html.kimi-lock,html.kimi-lock body{overflow:hidden!important;background:#05070D!important}';"
+            + "document.documentElement.appendChild(st);"
+            + "var chosen=null;"
+            + "function largest(){var best=null,area=0;document.querySelectorAll('iframe').forEach(function(f){"
+            + "var r=f.getBoundingClientRect();var a=r.width*r.height;if(a>area){area=a;best=f;}});return area>40000?best:null;}"
+            + "function tick(){var on=location.pathname.indexOf('/artifact/')===0;"
+            + "var dlg=document.querySelector('[role=\"dialog\"],[role=\"alertdialog\"],[aria-modal=\"true\"]');"
+            + "if(!chosen||!chosen.isConnected){if(chosen)chosen.classList.remove('kimi-full');chosen=largest();}"
+            + "if(dlg&&dlg.getClientRects().length===0)dlg=null;"
+            + "var full=on&&chosen&&!dlg;"
+            + "if(chosen)chosen.classList.toggle('kimi-full',!!full);"
+            + "document.documentElement.classList.toggle('kimi-lock',!!full);}"
+            + "tick();setInterval(tick,400);})();";
+
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ArrayDeque<String> events = new ArrayDeque<>();
 
@@ -134,7 +158,9 @@ public class MainActivity extends Activity {
                 String path = u.getPath() == null ? "/" : u.getPath();
                 if ("claude.ai".equals(u.getHost()) && (path.equals("/") || path.equals("/new") || path.startsWith("/recents"))) {
                     view.loadUrl(START_URL);
+                    return;
                 }
+                if ("claude.ai".equals(u.getHost())) view.evaluateJavascript(FULLSCREEN_JS, null);
             }
         });
         web.setWebChromeClient(new WebChromeClient() {
