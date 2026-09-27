@@ -115,10 +115,8 @@ final class Web {
     // ---------- 天気 ----------
     static String weather(String place) throws Exception {
         if (place.isEmpty()) place = "東京";
-        JSONObject geo = new JSONObject(get("https://geocoding-api.open-meteo.com/v1/search?count=1&language=ja&format=json&name=" + enc(place)));
-        JSONArray found = geo.optJSONArray("results");
-        if (found == null || found.length() == 0) throw new Exception("「" + place + "」という場所が見つかりませんでした。市区町村名で試してください");
-        JSONObject p = found.getJSONObject(0);
+        JSONObject p = geocode(place);
+        if (p == null) throw new Exception("「" + place + "」という場所が見つかりませんでした。市区町村名で試してください");
         String url = "https://api.open-meteo.com/v1/forecast?timezone=auto&forecast_days=3"
                 + "&latitude=" + p.getDouble("latitude") + "&longitude=" + p.getDouble("longitude")
                 + "&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m"
@@ -149,6 +147,28 @@ final class Web {
         out.put("予報", days);
         out.put("出典", "Open-Meteo");
         return out.toString();
+    }
+
+    /** 地名の書き方で見つかったり見つからなかったりするので、いくつかの形で探す。日本の場所を優先する */
+    private static JSONObject geocode(String place) throws Exception {
+        String base = place.replaceAll("(の天気|付近|周辺)$", "").trim();
+        String stem = base.replaceAll("[都道府県市区町村]$", "");
+        List<String> tries = new ArrayList<>();
+        for (String t : new String[]{base, stem + "市", stem, stem + "都", stem + "府", stem + "県", stem + "区", stem + "町"}) {
+            if (!t.isEmpty() && !tries.contains(t)) tries.add(t);
+        }
+        JSONObject fallback = null;
+        for (String t : tries) {
+            JSONObject geo = new JSONObject(get("https://geocoding-api.open-meteo.com/v1/search?count=5&language=ja&format=json&name=" + enc(t)));
+            JSONArray found = geo.optJSONArray("results");
+            if (found == null) continue;
+            for (int i = 0; i < found.length(); i++) {
+                JSONObject r = found.getJSONObject(i);
+                if ("JP".equals(r.optString("country_code"))) return r;
+                if (fallback == null) fallback = r;
+            }
+        }
+        return fallback;
     }
 
     private static String wmo(int c) {
