@@ -11,8 +11,8 @@ android {
         minSdk 26
         targetSdk 34
         // CI の実行番号をバージョンにして、上書きインストールできるようにする
-        versionCode (System.getenv('GITHUB_RUN_NUMBER') ?: '1').toInteger()
-        versionName "1.${System.getenv('GITHUB_RUN_NUMBER') ?: '0'}"
+        versionCode = Integer.parseInt(System.getenv('GITHUB_RUN_NUMBER') ?: '1')
+        versionName = "1." + (System.getenv('GITHUB_RUN_NUMBER') ?: '0')
     }
 
     signingConfigs {
