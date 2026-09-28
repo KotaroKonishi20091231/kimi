@@ -23,7 +23,10 @@ import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.content.ContentValues;
+import android.provider.MediaStore;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -187,6 +190,35 @@ public class MainActivity extends Activity {
             public void onPermissionRequest(PermissionRequest request) {
                 main.post(() -> request.deny());
             }
+
+            // ページの「写真」ボタン: ギャラリーから選ぶか、カメラで撮る
+            @Override
+            public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
+                if (fileCallback != null) fileCallback.onReceiveValue(null);
+                fileCallback = callback;
+                cameraUri = null;
+                Intent pick = new Intent(Intent.ACTION_GET_CONTENT).addCategory(Intent.CATEGORY_OPENABLE).setType("image/*");
+                Intent chooser = Intent.createChooser(pick, "写真を選ぶ");
+                try {
+                    ContentValues v = new ContentValues();
+                    v.put(MediaStore.Images.Media.DISPLAY_NAME, "KIMI_" + System.currentTimeMillis() + ".jpg");
+                    v.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+                    cameraUri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v);
+                    if (cameraUri != null) {
+                        Intent camera = new Intent(MediaStore.ACTION_IMAGE_CAPTURE).putExtra(MediaStore.EXTRA_OUTPUT, cameraUri)
+                                .addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                        chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{camera});
+                    }
+                } catch (Exception ignored) { cameraUri = null; }
+                try {
+                    startActivityForResult(chooser, REQ_FILE);
+                } catch (Exception e) {
+                    fileCallback.onReceiveValue(null);
+                    fileCallback = null;
+                    return false;
+                }
+                return true;
+            }
         });
 
         tts = new TextToSpeech(this, status -> {
@@ -305,6 +337,28 @@ public class MainActivity extends Activity {
 
     // 連絡先・通知など、マイク以外の許可
     private static final int REQ_OTHER = 2;
+    private static final int REQ_FILE = 3;
+    private ValueCallback<Uri[]> fileCallback = null;
+    private Uri cameraUri = null;
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != REQ_FILE || fileCallback == null) return;
+        Uri[] result = null;
+        if (resultCode == RESULT_OK) {
+            if (data != null && data.getData() != null) result = new Uri[]{data.getData()};
+            else if (cameraUri != null) result = new Uri[]{cameraUri}; // カメラで撮った写真
+        }
+        // カメラを使わなかったときは、用意した空の写真の場所を片付ける
+        boolean usedCamera = result != null && cameraUri != null && result[0].equals(cameraUri);
+        if (cameraUri != null && !usedCamera) {
+            try { getContentResolver().delete(cameraUri, null, null); } catch (Exception ignored) { }
+        }
+        fileCallback.onReceiveValue(result);
+        fileCallback = null;
+        cameraUri = null;
+    }
     private Runnable otherGranted = null, otherDenied = null;
 
     void withPermission(String permission, Runnable granted, Runnable denied) {
