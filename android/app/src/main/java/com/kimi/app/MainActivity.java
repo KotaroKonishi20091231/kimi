@@ -578,9 +578,25 @@ public class MainActivity extends Activity {
         main.post(() -> {
             if (!resumed) return;
             stopRecognizer();
-            doSpeak("リマインダーです。" + text, 1.0f);
+            String speech;
+            if (text.startsWith("アラーム: ")) speech = "アラームの時間です。用件は、" + text.substring(6) + "です。";
+            else if (text.startsWith("タイマー: ")) speech = "タイマーが終わりました。" + text.substring(6) + "です。";
+            else speech = "リマインダーです。" + text;
+            // アラームの音と重ならないよう、少し待ってから話す
+            main.postDelayed(() -> doSpeak(speech, 1.0f), text.startsWith("アラーム: ") ? 2500 : 0);
             emit("reminder", text);
         });
+    }
+
+    /** 時計アプリなどが前に出たとき、少し待って KIMI を前に戻す */
+    void bringBack(long delayMs) {
+        main.postDelayed(() -> {
+            if (resumed) return;
+            try {
+                startActivity(new Intent(this, MainActivity.class)
+                        .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP));
+            } catch (Exception ignored) { }
+        }, delayMs);
     }
 
     @Override

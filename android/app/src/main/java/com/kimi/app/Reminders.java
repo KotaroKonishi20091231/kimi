@@ -25,6 +25,11 @@ final class Reminders {
     private static final String PREFS = "kimi_reminders";
 
     static void schedule(Context c, String id, long when, String text) {
+        schedule(c, id, when, text, new java.util.ArrayList<>());
+    }
+
+    /** days: 繰り返す曜日（1=日曜 … 7=土曜）。空なら1回だけ */
+    static void schedule(Context c, String id, long when, String text, java.util.List<Integer> days) {
         JSONArray all = load(c);
         JSONArray kept = new JSONArray();
         for (int i = 0; i < all.length(); i++) {
@@ -36,6 +41,13 @@ final class Reminders {
             r.put("id", id);
             r.put("when", when);
             r.put("message", text);
+            if (days != null && !days.isEmpty()) {
+                java.util.Calendar cal = java.util.Calendar.getInstance();
+                cal.setTimeInMillis(when);
+                r.put("hour", cal.get(java.util.Calendar.HOUR_OF_DAY));
+                r.put("minute", cal.get(java.util.Calendar.MINUTE));
+                r.put("days", new JSONArray(days));
+            }
             kept.put(r);
         } catch (Exception ignored) { }
         save(c, kept);
@@ -95,14 +107,37 @@ final class Reminders {
         return PendingIntent.getBroadcast(c, id.hashCode(), i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
+    /** 次にその時刻が来る日時。days が空なら今日か明日、あれば次のその曜日 */
+    static long nextOccurrence(int hour, int minute, java.util.List<Integer> days) {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.set(java.util.Calendar.HOUR_OF_DAY, hour);
+        cal.set(java.util.Calendar.MINUTE, minute);
+        cal.set(java.util.Calendar.SECOND, 0);
+        cal.set(java.util.Calendar.MILLISECOND, 0);
+        long now = System.currentTimeMillis();
+        for (int i = 0; i < 8; i++) {
+            boolean dayOk = days == null || days.isEmpty() || days.contains(cal.get(java.util.Calendar.DAY_OF_WEEK));
+            if (cal.getTimeInMillis() > now + 1000 && dayOk) break;
+            cal.add(java.util.Calendar.DAY_OF_MONTH, 1);
+        }
+        return cal.getTimeInMillis();
+    }
+
     static void fire(Context c, String id, String text) {
+        JSONObject stored = find(c, id);
         cancelStored(c, id);
+        JSONArray rd = stored == null ? null : stored.optJSONArray("days");
+        if (rd != null && rd.length() > 0) { // 繰り返しなら次の回を入れ直す
+            java.util.List<Integer> days = new java.util.ArrayList<>();
+            for (int i = 0; i < rd.length(); i++) days.add(rd.optInt(i));
+            schedule(c, id, nextOccurrence(stored.optInt("hour"), stored.optInt("minute"), days), text, days);
+        }
         ensureChannel(c);
         Intent open = new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent tap = PendingIntent.getActivity(c, 0, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Notification n = new Notification.Builder(c, CHANNEL)
                 .setSmallIcon(android.R.drawable.ic_popup_reminder)
-                .setContentTitle("KIMI のリマインダー")
+                .setContentTitle(text.startsWith("アラーム: ") ? "KIMI のアラーム" : text.startsWith("タイマー: ") ? "KIMI のタイマー" : "KIMI のリマインダー")
                 .setContentText(text)
                 .setStyle(new Notification.BigTextStyle().bigText(text))
                 .setContentIntent(tap)
@@ -113,6 +148,15 @@ final class Reminders {
         try { nm.notify(id.hashCode(), n); } catch (SecurityException ignored) { }
         MainActivity open2 = MainActivity.current;
         if (open2 != null) open2.announce(text);
+    }
+
+    private static JSONObject find(Context c, String id) {
+        JSONArray all = load(c);
+        for (int i = 0; i < all.length(); i++) {
+            JSONObject r = all.optJSONObject(i);
+            if (r != null && id.equals(r.optString("id"))) return r;
+        }
+        return null;
     }
 
     private static void cancelStored(Context c, String id) {

@@ -36,3 +36,9 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 }
+
+dependencies {
+    // 写真の文字読み取り（日本語）と、写っているものの判定。どちらもスマホの中で動く
+    implementation 'com.google.mlkit:text-recognition-japanese:16.0.1'
+    implementation 'com.google.mlkit:image-labeling:17.0.9'
+}
