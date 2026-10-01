@@ -8,6 +8,7 @@ import android.content.pm.ResolveInfo;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
+import android.provider.AlarmClock;
 import android.provider.ContactsContract;
 
 import org.json.JSONArray;
@@ -33,6 +34,9 @@ final class Actions {
             case "reminder_set": reminderSet(a, args, done); return;
             case "reminder_list": done.done(Reminders.list(a).toString()); return;
             case "reminder_cancel": done.done(Reminders.cancel(a, args.optString("id")) ? "取り消しました" : "ERROR: そのリマインダーは見つかりません"); return;
+            case "alarm_set": done.done(alarmSet(a, args)); return;
+            case "timer_set": done.done(timerSet(a, args)); return;
+            case "alarm_show": done.done(start(a, new Intent(AlarmClock.ACTION_SHOW_ALARMS), "時計アプリのアラーム一覧を開きました")); return;
             case "open_app": done.done(openApp(a, args.optString("name"))); return;
             case "open_map": done.done(openMap(a, args.optString("destination"), args.optString("mode"))); return;
             case "youtube": done.done(open(a, "https://www.youtube.com/results?search_query=" + Uri.encode(args.optString("query")), "YouTube で「" + args.optString("query") + "」を開きました")); return;
@@ -58,6 +62,50 @@ final class Actions {
                     () -> done.done("ERROR: 通知が許可されていないので、時間になっても知らせられません。スマホの設定 → アプリ → KIMI → 通知 をオンにしてください"));
         } else {
             schedule.run();
+        }
+    }
+
+    // ---------- 時計アプリのアラーム・タイマー ----------
+    private static String alarmSet(MainActivity a, JSONObject args) {
+        int hour = args.optInt("hour", -1), minute = args.optInt("minute", 0);
+        if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return "ERROR: 時刻が正しくありません";
+        Intent i = new Intent(AlarmClock.ACTION_SET_ALARM)
+                .putExtra(AlarmClock.EXTRA_HOUR, hour)
+                .putExtra(AlarmClock.EXTRA_MINUTES, minute)
+                .putExtra(AlarmClock.EXTRA_SKIP_UI, true);
+        String msg = args.optString("message").trim();
+        if (!msg.isEmpty()) i.putExtra(AlarmClock.EXTRA_MESSAGE, msg);
+        JSONArray days = args.optJSONArray("days");
+        if (days != null && days.length() > 0) {
+            ArrayList<Integer> list = new ArrayList<>();
+            for (int d = 0; d < days.length(); d++) {
+                int day = days.optInt(d); // 1=日曜 … 7=土曜（Calendar と同じ）
+                if (day >= 1 && day <= 7 && !list.contains(day)) list.add(day);
+            }
+            if (!list.isEmpty()) i.putExtra(AlarmClock.EXTRA_DAYS, list);
+        }
+        return start(a, i, String.format(Locale.JAPAN, "OK: 時計アプリに %d時%02d分のアラームを設定しました", hour, minute));
+    }
+
+    private static String timerSet(MainActivity a, JSONObject args) {
+        int seconds = args.optInt("seconds", 0);
+        if (seconds <= 0 || seconds > 24 * 3600) return "ERROR: タイマーの長さが正しくありません";
+        Intent i = new Intent(AlarmClock.ACTION_SET_TIMER)
+                .putExtra(AlarmClock.EXTRA_LENGTH, seconds)
+                .putExtra(AlarmClock.EXTRA_SKIP_UI, true);
+        String msg = args.optString("message").trim();
+        if (!msg.isEmpty()) i.putExtra(AlarmClock.EXTRA_MESSAGE, msg);
+        return start(a, i, "OK: 時計アプリのタイマーを始めました");
+    }
+
+    private static String start(MainActivity a, Intent i, String ok) {
+        try {
+            a.startActivity(i);
+            return ok;
+        } catch (ActivityNotFoundException e) {
+            return "ERROR: 時計アプリが見つかりませんでした";
+        } catch (SecurityException e) {
+            return "ERROR: 時計アプリを操作する許可がありません";
         }
     }
 

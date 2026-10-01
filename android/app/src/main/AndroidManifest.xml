@@ -10,6 +10,8 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- 名前から電話番号・メールアドレスを探す（電話やメッセージは画面を開くだけで、送信は本人が押す） -->
     <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <!-- 時計アプリにアラーム・タイマーを設定する -->
+    <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
     <!-- 古い Android でカメラの写真を保存するため -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
 
@@ -38,6 +40,15 @@
         </intent>
         <intent>
             <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SET_ALARM" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SET_TIMER" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SHOW_ALARMS" />
         </intent>
         <intent>
             <action android:name="android.intent.action.GET_CONTENT" />
