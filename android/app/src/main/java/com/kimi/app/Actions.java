@@ -72,7 +72,7 @@ final class Actions {
         Intent i = new Intent(AlarmClock.ACTION_SET_ALARM)
                 .putExtra(AlarmClock.EXTRA_HOUR, hour)
                 .putExtra(AlarmClock.EXTRA_MINUTES, minute)
-                .putExtra(AlarmClock.EXTRA_SKIP_UI, true);
+                .putExtra(AlarmClock.EXTRA_SKIP_UI, false); // 端末によっては画面を出さないと保存されないので、時計アプリを開いて見せる
         String msg = args.optString("message").trim();
         if (!msg.isEmpty()) i.putExtra(AlarmClock.EXTRA_MESSAGE, msg);
         JSONArray days = args.optJSONArray("days");
@@ -84,7 +84,7 @@ final class Actions {
             }
             if (!list.isEmpty()) i.putExtra(AlarmClock.EXTRA_DAYS, list);
         }
-        return start(a, i, String.format(Locale.JAPAN, "OK: 時計アプリに %d時%02d分のアラームを設定しました", hour, minute));
+        return start(a, i, String.format(Locale.JAPAN, "OK: 時計アプリに %d時%02d分のアラームを設定しました。時計アプリの画面に「保存」ボタンがあれば押してもらう", hour, minute));
     }
 
     private static String timerSet(MainActivity a, JSONObject args) {
@@ -92,7 +92,7 @@ final class Actions {
         if (seconds <= 0 || seconds > 24 * 3600) return "ERROR: タイマーの長さが正しくありません";
         Intent i = new Intent(AlarmClock.ACTION_SET_TIMER)
                 .putExtra(AlarmClock.EXTRA_LENGTH, seconds)
-                .putExtra(AlarmClock.EXTRA_SKIP_UI, true);
+                .putExtra(AlarmClock.EXTRA_SKIP_UI, false); // 端末によっては画面を出さないと保存されないので、時計アプリを開いて見せる
         String msg = args.optString("message").trim();
         if (!msg.isEmpty()) i.putExtra(AlarmClock.EXTRA_MESSAGE, msg);
         return start(a, i, "OK: 時計アプリのタイマーを始めました");
