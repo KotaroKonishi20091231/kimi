@@ -1,0 +1,1347 @@
+<title>KIMI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&family=Share+Tech+Mono&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+  /* KIMI は暗い画面に光るコアを置く一枚のデザイン。テーマ切り替えは持たず、色はすべてここで固定する */
+  :root {
+    color-scheme: dark;
+    --void: #05070d; --deep: #0a0f1c; --glass: rgba(120, 160, 255, .06); --glass-hi: rgba(120, 160, 255, .11);
+    --line: rgba(140, 180, 255, .16); --line-hi: rgba(94, 231, 255, .45);
+    --ink: #e8eefc; --muted: #8391ad; --cyan: #5ee7ff; --violet: #8f7bff; --ok: #5effc1; --danger: #ff6b8a;
+    --display: "Michroma", "Eurostile", "Arial Black", sans-serif;
+    --mono: "Share Tech Mono", ui-monospace, "SF Mono", "Consolas", monospace;
+    --body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+  }
+  html, body { height: 100%; }
+  body {
+    color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.7;
+    background:
+      radial-gradient(120% 60% at 50% -10%, rgba(94, 231, 255, .14), transparent 60%),
+      radial-gradient(80% 50% at 100% 100%, rgba(143, 123, 255, .10), transparent 60%),
+      linear-gradient(var(--void), var(--deep));
+    background-color: var(--void);
+  }
+  body::before { /* うっすら見える方眼 */
+    content: ""; position: fixed; inset: 0; pointer-events: none;
+    background-image: linear-gradient(rgba(140,180,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(140,180,255,.05) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: radial-gradient(ellipse at 50% 20%, #000 20%, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse at 50% 20%, #000 20%, transparent 75%);
+  }
+  * { box-sizing: border-box; }
+  button { font: inherit; color: inherit; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
+  .app { position: relative; max-width: 640px; margin: 0 auto; height: 100%; display: flex; flex-direction: column; }
+
+  /* ---- ヘッダー ---- */
+  header { padding: 14px 16px 10px; display: flex; flex-direction: column; gap: 12px; }
+  .top { display: flex; align-items: center; gap: 10px; }
+  .brand { margin-right: auto; display: flex; flex-direction: column; gap: 2px; }
+  .wordmark { margin: 0; font-family: var(--display); font-weight: 400; font-size: 24px; letter-spacing: .38em; line-height: 1;
+    background: linear-gradient(90deg, var(--ink), var(--cyan) 70%, var(--violet)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .sysline { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: .12em; display: flex; align-items: center; gap: 6px; }
+  .sysline::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+  .icon-btn { width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--glass);
+    display: grid; place-items: center; cursor: pointer; color: var(--cyan); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .icon-btn svg { width: 18px; height: 18px; }
+  .icon-btn[aria-pressed="false"] { color: var(--muted); }
+  .icon-btn[aria-expanded="true"] { border-color: var(--line-hi); background: var(--glass-hi); }
+
+  .settings { border: 1px solid var(--line); background: rgba(10, 15, 28, .82); border-radius: 16px; padding: 14px;
+    display: grid; grid-template-columns: auto 1fr; gap: 10px 12px; align-items: center; font-size: 14px;
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  .settings label { font-family: var(--mono); font-size: 12px; letter-spacing: .1em; color: var(--muted); }
+  .settings select { font: inherit; font-size: 15px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--deep); color: var(--ink); min-width: 0; width: 100%; }
+  .settings input[type="range"] { width: 100%; accent-color: var(--cyan); }
+  .settings .follow { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font-family: var(--body); font-size: 14px; letter-spacing: 0; color: var(--ink); }
+  .settings .follow input { width: 20px; height: 20px; accent-color: var(--cyan); }
+  .settings .try { grid-column: 1 / -1; border: 1px solid var(--line-hi); background: rgba(94, 231, 255, .12); color: var(--cyan);
+    border-radius: 10px; padding: 9px; font-family: var(--mono); letter-spacing: .12em; cursor: pointer; }
+  .settings .tip { grid-column: 1 / -1; margin: 0; font-size: 12px; color: var(--muted); line-height: 1.8; }
+  #rateLabel { color: var(--cyan); }
+
+  .tabs { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); border-radius: 14px; padding: 4px; gap: 4px;
+    background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .tabs button { border: 1px solid transparent; background: none; border-radius: 10px; padding: 6px 0 5px; cursor: pointer; color: var(--muted);
+    display: flex; flex-direction: column; align-items: center; line-height: 1.25; font-size: 14px; }
+  .tabs .en { font-family: var(--mono); font-size: 10px; letter-spacing: .16em; }
+  .tabs button[aria-selected="true"] { color: var(--ink); border-color: var(--line-hi); background: rgba(94, 231, 255, .08);
+    box-shadow: inset 0 0 12px rgba(94, 231, 255, .12); }
+  .tabs button[aria-selected="true"] .en { color: var(--cyan); }
+  .tabs .count { font-family: var(--mono); font-size: 11px; color: var(--cyan); margin-left: 3px; }
+
+  main { flex: 1; overflow-y: auto; padding: 4px 16px 18px; }
+  .view { display: flex; flex-direction: column; gap: 14px; }
+
+  /* ---- コア ---- */
+  .core { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; padding-block: 6px 2px; }
+  .readout { display: flex; flex-direction: column; gap: 2px; font-family: var(--mono); color: var(--muted); font-size: 11px; letter-spacing: .14em; }
+  .readout.right { text-align: right; }
+  .readout b { font-family: var(--display); font-weight: 400; font-size: 26px; color: var(--ink); letter-spacing: 0; line-height: 1.1; }
+  .readout .jp { font-family: var(--body); letter-spacing: 0; font-size: 12px; }
+  .orb { position: relative; width: 132px; height: 132px; display: grid; place-items: center; }
+  .orb .ring, .orb .ring2, .orb .nucleus { position: absolute; border-radius: 50%; }
+  .orb .ring { inset: 0; background: conic-gradient(from 0deg, transparent 0 15%, var(--cyan) 25%, transparent 40% 60%, var(--violet) 75%, transparent 90%);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px)); mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px)); }
+  .orb .ring2 { inset: 14px; border: 1px dashed rgba(94, 231, 255, .35); }
+  .orb .nucleus { inset: 30px; background: radial-gradient(circle at 38% 35%, #ffffff, var(--cyan) 22%, #2a6cff 58%, var(--violet) 100%);
+    box-shadow: 0 0 28px rgba(94, 231, 255, .55), 0 0 60px rgba(143, 123, 255, .35); }
+  .status { text-align: center; font-family: var(--mono); font-size: 12px; letter-spacing: .2em; color: var(--cyan); margin-top: -4px; }
+  .status .jp { font-family: var(--body); letter-spacing: .04em; color: var(--muted); margin-left: 8px; }
+  .orb.listening .nucleus { background: radial-gradient(circle at 38% 35%, #ffffff, var(--ok) 25%, #1b9b8a 60%, #1f3d7a 100%); box-shadow: 0 0 34px rgba(94, 255, 193, .6); }
+  .heard { text-align: center; color: var(--muted); font-size: 14px; min-height: 1.5em; margin-top: -8px; }
+  .icon-btn.wake[aria-pressed="true"] { border-color: var(--line-hi); background: rgba(94, 231, 255, .14); box-shadow: 0 0 12px rgba(94, 231, 255, .25); color: var(--cyan); }
+  .orb.error .nucleus { background: radial-gradient(circle at 38% 35%, #fff, var(--danger) 30%, #5a1030); box-shadow: 0 0 28px rgba(255, 107, 138, .5); }
+  @media (prefers-reduced-motion: no-preference) {
+    .orb .ring { animation: spin 9s linear infinite; }
+    .orb .ring2 { animation: spin 22s linear infinite reverse; }
+    .orb .nucleus { animation: breathe 4.5s ease-in-out infinite; }
+    .orb.thinking .ring { animation-duration: 1.1s; }
+    .orb.thinking .ring2 { animation-duration: 3s; }
+    .orb.thinking .nucleus { animation: breathe 1.2s ease-in-out infinite; }
+    .orb.speaking .nucleus { animation: talk .45s ease-in-out infinite alternate; }
+    .msg { animation: rise .22s ease-out; }
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes breathe { 50% { transform: scale(.9); filter: brightness(.85); } }
+  @keyframes talk { from { transform: scale(.94); } to { transform: scale(1.06); filter: brightness(1.15); } }
+  @keyframes rise { from { transform: translateY(6px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+  /* ---- 会話 ---- */
+  .msg { max-width: 88%; white-space: pre-wrap; word-break: break-word; }
+  .msg.user { align-self: flex-end; padding: 10px 14px; border-radius: 16px 16px 4px 16px;
+    background: linear-gradient(135deg, rgba(94, 231, 255, .20), rgba(143, 123, 255, .16)); border: 1px solid var(--line-hi); }
+  .msg.ai { align-self: flex-start; padding: 10px 14px; border-radius: 4px 16px 16px 16px; border: 1px solid var(--line); background: var(--glass);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .msg.ai::before { content: "KIMI"; display: block; font-family: var(--mono); font-size: 10px; letter-spacing: .28em; color: var(--cyan); margin-bottom: 2px; }
+  .msg.ai.pending { color: var(--muted); }
+  .msg.ai.error { color: var(--danger); border-color: rgba(255, 107, 138, .35); }
+  .msg.ai.error::before { color: var(--danger); }
+  .msg .used { display: block; margin-top: 4px; font-size: 11px; color: var(--muted); }
+
+  /* ---- 一覧 ---- */
+  .group h2 { margin: 4px 0 8px; display: flex; align-items: baseline; gap: 10px; font-weight: 500; }
+  .group h2 .md { font-family: var(--display); font-weight: 400; font-size: 15px; letter-spacing: .08em; color: var(--ink); }
+  .group h2 .wd { font-family: var(--mono); font-size: 11px; letter-spacing: .2em; color: var(--cyan); }
+  .group h2 .tag { font-family: var(--mono); font-size: 10px; letter-spacing: .2em; color: var(--void); background: var(--cyan); padding: 1px 6px; border-radius: 4px; }
+  .list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: var(--glass);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .list li { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-top: 1px solid var(--line); }
+  .list li:first-child { border-top: none; }
+  .list .time { font-family: var(--mono); font-size: 17px; min-width: 3.4em; color: var(--cyan); text-shadow: 0 0 10px rgba(94, 231, 255, .45); }
+  .list .time.allday { font-family: var(--body); font-size: 13px; color: var(--muted); text-shadow: none; }
+  .list .body { flex: 1; min-width: 0; }
+  .list .sub { display: block; font-size: 13px; color: var(--muted); }
+  .list .sub.mono { font-family: var(--mono); letter-spacing: .06em; }
+  .list li.done .title { text-decoration: line-through; color: var(--muted); }
+  .check { width: 26px; height: 26px; border-radius: 8px; border: 1.5px solid var(--line-hi); background: none; cursor: pointer; flex: none; display: grid; place-items: center; color: transparent; }
+  .check.on { border-color: var(--ok); background: rgba(94, 255, 193, .15); color: var(--ok); box-shadow: 0 0 10px rgba(94, 255, 193, .3); }
+  .check svg { width: 14px; height: 14px; }
+  .del { border: none; background: none; color: var(--muted); cursor: pointer; padding: 4px 6px; font-size: 13px; border-radius: 6px; flex: none; }
+  .del.confirm { color: var(--danger); font-weight: 700; }
+  .empty { color: var(--muted); text-align: center; padding: 32px 8px; font-size: 14px; border: 1px dashed var(--line); border-radius: 16px; }
+
+  /* ---- 入力欄 ---- */
+  .composer { border-top: 1px solid var(--line); background: rgba(5, 7, 13, .78); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px)); }
+  .composer form { display: flex; gap: 8px; align-items: center; }
+  .composer input { flex: 1; min-width: 0; border: 1px solid var(--line); background: rgba(120, 160, 255, .07); color: var(--ink);
+    border-radius: 999px; padding: 11px 16px; font: inherit; font-size: 16px; }
+  .composer input::placeholder { color: var(--muted); }
+  .composer input:focus { outline: none; border-color: var(--line-hi); box-shadow: 0 0 0 3px rgba(94, 231, 255, .12), 0 0 18px rgba(94, 231, 255, .18); }
+  .round { width: 46px; height: 46px; border-radius: 50%; cursor: pointer; display: grid; place-items: center; flex: none; }
+  .round svg { width: 21px; height: 21px; }
+  .mic { border: 1px solid var(--line); background: var(--glass); color: var(--cyan); }
+  .photo { border: 1px solid var(--line); background: var(--glass); color: var(--violet); width: 42px; height: 42px; }
+  .attach { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; padding: 8px; border: 1px solid var(--line-hi); border-radius: 12px;
+    background: rgba(94, 231, 255, .06); font-size: 12px; color: var(--muted); }
+  .attach img { width: 48px; height: 48px; object-fit: cover; border-radius: 8px; flex: none; }
+  .attach span { flex: 1; min-width: 0; }
+  .attach button { border: none; background: none; color: var(--ink); font-size: 20px; cursor: pointer; padding: 4px 8px; flex: none; }
+  .msg.user img { display: block; max-width: 220px; width: 100%; border-radius: 10px; margin-bottom: 6px; }
+  .mic.listening { background: var(--danger); color: #fff; border-color: var(--danger); }
+  .send { border: none; background: linear-gradient(135deg, var(--cyan), #3b8bff 60%, var(--violet)); color: var(--void); box-shadow: 0 0 16px rgba(94, 231, 255, .35); }
+  .send.stop { background: var(--ink); box-shadow: none; }
+  .hint { font-size: 12px; color: var(--muted); text-align: center; margin: 6px 0 0; }
+</style>
+
+<div class="app">
+  <header>
+    <div class="top">
+      <div class="brand">
+        <h1 class="wordmark">KIMI</h1>
+        <span class="sysline" id="today"></span>
+      </div>
+      <button class="icon-btn wake" id="wakeBtn" aria-pressed="false" aria-label="「きみ」で呼びかけ" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8.5a6 6 0 0 1 12 0c0 3.5-3 4.5-3 7.5a3 3 0 0 1-6 0"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0"/></svg>
+      </button>
+      <button class="icon-btn" id="speakToggle" aria-pressed="true" aria-label="読み上げ オン">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path id="wave1" d="M15.5 8.5a5 5 0 0 1 0 7"/><path id="wave2" d="M19 5a10 10 0 0 1 0 14"/></svg>
+      </button>
+      <button class="icon-btn" id="settingsBtn" aria-expanded="false" aria-controls="settings" aria-label="声の設定">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.2" fill="var(--deep)"/><circle cx="15" cy="17" r="2.2" fill="var(--deep)"/></svg>
+      </button>
+    </div>
+    <div class="settings" id="settings" hidden>
+      <label for="voiceSelect">VOICE</label>
+      <select id="voiceSelect"></select>
+      <label for="rate">SPEED <span id="rateLabel">1.0x</span></label>
+      <input type="range" id="rate" min="0.8" max="1.4" step="0.1" value="1.0">
+      <button class="try" id="tryVoice">▶ 試しに聞く</button>
+      <label class="follow" id="followRow" hidden><input type="checkbox" id="followToggle"> 返事のあと、続けて聞き取る（会話のラリー）</label>
+      <label class="follow" id="gcalRow" hidden><input type="checkbox" id="gcalToggle"> 予定を Google カレンダーにも登録する</label>
+      <p class="tip">もっと自然な声にするには、端末に高品質な声を追加してください。<br>
+        iPhone: 設定 → アクセシビリティ → 読み上げコンテンツ → 声 → 日本語 →「Kyoko（拡張）」や「O-ren（拡張）」をダウンロード<br>
+        Android: 設定 →「音声出力」で検索 →「Google 音声サービス」の日本語の音声データをインストール<br>
+        追加したあと、このページを開き直すと選べるようになります。</p>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="chat" aria-selected="true"><span class="en">CHAT</span>会話</button>
+      <button role="tab" data-tab="events" aria-selected="false"><span class="en">SCHEDULE</span><span>予定<span class="count" id="cEvents"></span></span></button>
+      <button role="tab" data-tab="tasks" aria-selected="false"><span class="en">TASKS</span><span>タスク<span class="count" id="cTasks"></span></span></button>
+      <button role="tab" data-tab="memos" aria-selected="false"><span class="en">MEMORY</span><span>メモ<span class="count" id="cMemos"></span></span></button>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="view" id="view-chat">
+      <div class="core">
+        <div class="readout"><span>TODAY</span><b id="nToday">0</b><span class="jp">今日の予定</span></div>
+        <div class="orb" id="orb" aria-hidden="true"><div class="ring"></div><div class="ring2"></div><div class="nucleus"></div></div>
+        <div class="readout right"><span>OPEN</span><b id="nOpen">0</b><span class="jp">未完了タスク</span></div>
+      </div>
+      <div class="status" id="status" aria-live="polite">STANDBY<span class="jp">待機中</span></div>
+      <div class="heard" id="heard"></div>
+      <div class="view" id="log"></div>
+    </section>
+    <section class="view" id="view-events" hidden></section>
+    <section class="view" id="view-tasks" hidden></section>
+    <section class="view" id="view-memos" hidden></section>
+  </main>
+
+  <div class="composer">
+    <div class="attach" id="attach" hidden>
+      <img id="attachImg" alt="添付した写真">
+      <span>写真を添付しました。質問を話すか入力してください（何も言わずに送ると、写っているものを説明します）</span>
+      <button type="button" id="attachClear" aria-label="写真を外す">×</button>
+    </div>
+    <input type="file" id="photoInput" accept="image/*" hidden>
+    <form id="form">
+      <button type="button" class="round photo" id="photoBtn" aria-label="写真を送る" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+      </button>
+      <button type="button" class="round mic" id="mic" aria-label="声で入力">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="22"/></svg>
+      </button>
+      <input id="input" placeholder="KIMIに話しかける" autocomplete="off" enterkeyhint="send">
+      <button type="submit" class="round send" id="send" aria-label="送信">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+      </button>
+    </form>
+    <p class="hint" id="hint">声で話すときは、キーボードのマイクボタンを押してください</p>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const WEEK = "日月火水木金土";
+const WEEK_EN = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+const pad = (n) => String(n).padStart(2, "0");
+const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const jpDate = (s) => { const d = new Date(s + "T00:00:00"); return `${d.getMonth() + 1}月${d.getDate()}日(${WEEK[d.getDay()]})`; };
+const newId = () => Math.random().toString(36).slice(2, 8);
+const store = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch { return null; } };
+
+// ---------- コアの状態表示 ----------
+// KIMI のアプリ(Android)の中で開いているときだけ、端末の読み上げと音声認識が使える
+let native = null;
+try { if (window.KimiNative && window.KimiNative.available()) native = window.KimiNative; } catch {}
+let wakeOn = false;
+
+const CORE = {
+  idle: ["STANDBY", "待機中"],
+  waiting: ["LISTENING", "「きみ」と呼んでください"],
+  listening: ["READY", "どうぞ、お話しください"],
+  thinking: ["PROCESSING", "考えています"],
+  searching: ["SEARCHING", "調べています"],
+  speaking: ["SPEAKING", "話しています"],
+  error: ["ERROR", "うまくいきませんでした"],
+};
+function setCore(s) {
+  if (s === "idle" && wakeOn) s = "waiting";
+  $("orb").className = "orb " + s;
+  $("status").innerHTML = "";
+  $("status").append(CORE[s][0], el("span", "jp", CORE[s][1]));
+}
+
+// ---------- データ ----------
+let state = { events: [], tasks: [], memos: [] };
+let reminders = []; // 予定タブに表示する、これから鳴るリマインダー（アプリの中だけ）
+let gcalEvents = []; // 予定タブに表示する、Google カレンダーの予定（アプリの中だけ）
+let docRef = null;
+let saving = Promise.resolve();
+
+function normalize(d) {
+  return {
+    events: Array.isArray(d?.events) ? d.events : [],
+    tasks: Array.isArray(d?.tasks) ? d.tasks : [],
+    memos: Array.isArray(d?.memos) ? d.memos : [],
+  };
+}
+function sortEvents() {
+  state.events.sort((a, b) => `${a.date} ${a.time || ""}`.localeCompare(`${b.date} ${b.time || ""}`));
+}
+// 保存待ちの数。保存が終わるまでは、サーバーから届く少し古い内容で手元の変更を上書きしない
+let pendingSaves = 0;
+function save() {
+  const snapshot = JSON.parse(JSON.stringify(state));
+  if (docRef) {
+    pendingSaves++;
+    saving = saving
+      .then(() => docRef.set(snapshot))
+      .catch((e) => {
+        console.warn("save failed", e);
+        if (e?.code === "quota_exceeded") showNote("保存できる量の上限に達しました。古いメモや予定を削除してください。");
+        else showNote("保存に失敗しました。電波の良いところでもう一度お試しください。");
+      })
+      .finally(() => { pendingSaves--; });
+  } else {
+    store("hisho-data", JSON.stringify(snapshot));
+  }
+  render();
+}
+
+async function initStore() {
+  try { state = normalize(JSON.parse(store("hisho-data") || "{}")); } catch {}
+  render();
+  if (!window.claude?.use) return;
+  const [db, user] = await Promise.all([claude.use("db"), claude.use("user")]);
+  const uid = user ? await user.id() : null;
+  if (!db || !uid) return;
+  docRef = db.doc(`data/users/${uid}/secretary`);
+  docRef.onSnapshot((snap) => {
+    if (pendingSaves > 0 || snap.metadata?.hasPendingWrites) return;
+    if (snap.exists) { state = normalize(JSON.parse(JSON.stringify(snap.data()))); render(); }
+  }, (e) => console.warn("sync stopped", e));
+}
+
+// ---------- 画面 ----------
+function todayStr() { return ymd(new Date()); }
+
+function render() {
+  const today = todayStr();
+  const upcoming = state.events.filter((e) => e.date >= today);
+  const openTasks = state.tasks.filter((t) => !t.done);
+
+  $("cEvents").textContent = upcoming.length || "";
+  $("cTasks").textContent = openTasks.length || "";
+  $("cMemos").textContent = state.memos.length || "";
+  $("nToday").textContent = upcoming.filter((e) => e.date === today).length;
+  $("nOpen").textContent = openTasks.length;
+
+  // 予定
+  const ev = $("view-events"); ev.innerHTML = "";
+  if (!upcoming.length) ev.innerHTML = '<p class="empty">これからの予定はありません。<br>「金曜の19時に飲み会」のように話しかけると登録できます。</p>';
+  const byDate = {};
+  for (const e of upcoming) (byDate[e.date] ||= []).push(e);
+  for (const [date, items] of Object.entries(byDate)) {
+    const d = new Date(date + "T00:00:00");
+    const g = el("div", "group");
+    const h = el("h2");
+    h.append(el("span", "md", `${pad(d.getMonth() + 1)}.${pad(d.getDate())}`), el("span", "wd", WEEK_EN[d.getDay()]));
+    if (date === today) h.append(el("span", "tag", "TODAY"));
+    g.appendChild(h);
+    const ul = el("ul", "list");
+    for (const e of items) {
+      const li = el("li");
+      li.appendChild(el("span", e.time ? "time" : "time allday", e.time || "終日"));
+      const body = el("div", "body"); body.appendChild(el("span", "title", e.title));
+      if (e.note) body.appendChild(el("span", "sub", e.note));
+      li.appendChild(body);
+      if (e.gcalId) body.appendChild(el("span", "sub mono", "GOOGLE カレンダーにも登録済み"));
+      li.appendChild(delButton(() => removeEvent(e)));
+      ul.appendChild(li);
+    }
+    g.appendChild(ul); ev.appendChild(g);
+  }
+  // Google カレンダーにある予定（KIMI から登録したものは上に出ているので除く。アプリの中だけ）
+  const mine = new Set(state.events.map((e) => e.gcalId).filter(Boolean));
+  const gcal = gcalEvents.filter((g) => !mine.has(g.id) && g.end > Date.now());
+  if (gcal.length) {
+    const g = el("div", "group");
+    const h = el("h2");
+    h.append(el("span", "md", "GOOGLE"), el("span", "wd", "カレンダー"));
+    g.appendChild(h);
+    const ul = el("ul", "list");
+    for (const x of gcal) {
+      const d = new Date(x.begin);
+      const li = el("li");
+      li.appendChild(el("span", x.allDay ? "time allday" : "time", x.allDay ? "終日" : `${pad(d.getHours())}:${pad(d.getMinutes())}`));
+      const body = el("div", "body"); body.appendChild(el("span", "title", x.title));
+      body.appendChild(el("span", "sub", `${d.getMonth() + 1}月${d.getDate()}日(${WEEK[d.getDay()]})` + (x.location ? " ・ " + x.location : "")));
+      li.appendChild(body);
+      ul.appendChild(li);
+    }
+    g.appendChild(ul); ev.appendChild(g);
+  }
+  // リマインダー（アプリの中だけ）
+  const upcomingReminders = reminders.filter((r) => r.when > Date.now());
+  if (upcomingReminders.length) {
+    const g = el("div", "group");
+    const h = el("h2");
+    h.append(el("span", "md", "REMINDERS"), el("span", "wd", "通知"));
+    g.appendChild(h);
+    const ul = el("ul", "list");
+    for (const r of upcomingReminders) {
+      const d = new Date(r.when);
+      const li = el("li");
+      li.appendChild(el("span", "time", `${pad(d.getHours())}:${pad(d.getMinutes())}`));
+      const body = el("div", "body"); body.appendChild(el("span", "title", r.message));
+      body.appendChild(el("span", "sub", `${d.getMonth() + 1}月${d.getDate()}日(${WEEK[d.getDay()]})`));
+      li.appendChild(body);
+      li.appendChild(delButton(async () => { try { await nativeAct("reminder_cancel", { id: r.id }); } catch {} refreshReminders(); }));
+      ul.appendChild(li);
+    }
+    g.appendChild(ul); ev.appendChild(g);
+  }
+
+  // タスク
+  const tv = $("view-tasks"); tv.innerHTML = "";
+  if (!state.tasks.length) tv.innerHTML = '<p class="empty">タスクはありません。<br>「電気代を払うってタスクに追加」のように話しかけてください。</p>';
+  else {
+    const ul = el("ul", "list");
+    const sorted = [...state.tasks].sort((a, b) => (a.done - b.done) || (a.due || "9").localeCompare(b.due || "9"));
+    for (const t of sorted) {
+      const li = el("li", t.done ? "done" : null);
+      const c = el("button", "check" + (t.done ? " on" : ""));
+      c.setAttribute("aria-label", t.done ? "未完了に戻す" : "完了にする");
+      c.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg>';
+      c.onclick = () => { t.done = !t.done; save(); };
+      li.appendChild(c);
+      const body = el("div", "body"); body.appendChild(el("span", "title", t.title));
+      if (t.due) body.appendChild(el("span", "sub", "期限 " + jpDate(t.due)));
+      li.appendChild(body);
+      li.appendChild(delButton(() => { state.tasks = state.tasks.filter((x) => x.id !== t.id); save(); }));
+      ul.appendChild(li);
+    }
+    tv.appendChild(ul);
+  }
+
+  // メモ
+  const mv = $("view-memos"); mv.innerHTML = "";
+  if (!state.memos.length) mv.innerHTML = '<p class="empty">メモはありません。<br>「〇〇って覚えておいて」と話しかけると保存します。</p>';
+  else {
+    const ul = el("ul", "list");
+    for (const m of [...state.memos].reverse()) {
+      const li = el("li");
+      const body = el("div", "body"); body.appendChild(el("span", "title", m.content));
+      body.appendChild(el("span", "sub mono", m.createdAt.slice(0, 10).replaceAll("-", ".")));
+      li.appendChild(body);
+      li.appendChild(delButton(() => { state.memos = state.memos.filter((x) => x.id !== m.id); save(); }));
+      ul.appendChild(li);
+    }
+    mv.appendChild(ul);
+  }
+}
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+function delButton(onDelete) {
+  const b = el("button", "del", "削除");
+  b.onclick = () => {
+    if (b.classList.contains("confirm")) return onDelete();
+    b.classList.add("confirm"); b.textContent = "本当に削除";
+    setTimeout(() => { b.classList.remove("confirm"); b.textContent = "削除"; }, 3000);
+  };
+  return b;
+}
+
+// タブ
+document.querySelectorAll(".tabs button").forEach((b) => b.onclick = () => showTab(b.dataset.tab));
+function showTab(name) {
+  document.querySelectorAll(".tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
+  for (const v of ["chat", "events", "tasks", "memos"]) $("view-" + v).hidden = v !== name;
+  if (name === "chat") scrollDown();
+  if (name === "events" && typeof refreshReminders === "function") { refreshReminders(); refreshGcal(); }
+}
+function scrollDown() { const m = $("main"); m.scrollTo({ top: m.scrollHeight, behavior: "smooth" }); }
+// 話しかけるときは、一番上（光るコア）を見せる
+function scrollToCore() { showTab("chat"); const m = $("main"); m.scrollTo({ top: 0, behavior: "smooth" }); }
+
+$("today").textContent = (() => { const d = new Date(); return `ONLINE · ${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())} ${WEEK_EN[d.getDay()]}`; })();
+
+// ---------- 読み上げ ----------
+let speakOn = store("hisho-speak") !== "off";
+function paintSpeak() {
+  $("speakToggle").setAttribute("aria-pressed", String(speakOn));
+  $("speakToggle").setAttribute("aria-label", speakOn ? "読み上げ オン" : "読み上げ オフ");
+  $("wave1").style.opacity = $("wave2").style.opacity = speakOn ? "1" : "0";
+}
+$("speakToggle").onclick = () => { speakOn = !speakOn; store("hisho-speak", speakOn ? "on" : "off"); if (!speakOn) stopSpeaking(); paintSpeak(); showNote(speakOn ? "読み上げをオンにしました" : "読み上げをオフにしました"); };
+paintSpeak();
+
+// 端末に入っている日本語の声を、自然さの目安で並べる
+function voiceScore(v) {
+  const n = v.name;
+  let s = 0;
+  if (/natural|neural|online/i.test(n)) s += 6;          // Edge / Windows の Nanami, Keita など
+  if (/enhanced|premium|拡張|高品質/i.test(n)) s += 5;   // iPhone でダウンロードした高品質の声
+  if (/siri/i.test(n)) s += 5;
+  if (/google/i.test(n)) s += 3;                          // Android / Chrome の Google 日本語
+  if (/kyoko|o-ren|otoya|hattori|nanami|keita/i.test(n)) s += 1;
+  return s;
+}
+function jaVoices() {
+  try {
+    return speechSynthesis.getVoices().filter((v) => /^ja/i.test(v.lang)).sort((a, b) => voiceScore(b) - voiceScore(a));
+  } catch { return []; }
+}
+let voiceName = store("hisho-voice") || "";
+let voiceRate = Number(store("hisho-rate")) || 1.0;
+function currentVoice() {
+  const list = jaVoices();
+  return list.find((v) => v.name === voiceName) || list[0] || null;
+}
+
+// 読み上げ向けに整える: 記号を外し、時刻を読みやすくする
+function forSpeech(text) {
+  return text
+    .replace(/KIMI/gi, "キミ")
+    .replace(/https?:\/\/\S+/g, "")
+    .replace(/[*#_`>~|]/g, "")
+    .replace(/(\d{1,2}):(\d{2})/g, (_, h, m) => `${Number(h)}時${m === "00" ? "" : Number(m) + "分"}`)
+    .replace(/[（(][^）)]*[）)]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+// 文ごとに区切って読むと、間が入って自然に聞こえる
+function sentences(text) {
+  return (text.match(/[^。！？!?\n]+[。！？!?]?/g) || []).map((s) => s.trim()).filter(Boolean);
+}
+
+let speechId = 0; // 中断された読み上げの終了通知で表示が戻らないようにする
+function stopSpeaking() {
+  speechId++;
+  if (native) { try { native.stopSpeaking(); } catch {} return; }
+  try { speechSynthesis.cancel(); } catch {}
+}
+// 話し終わったら（読み上げオフならすぐ）呼びかけの待ち受けに戻す
+// 会話のラリー: 返事を読み終えたら、「きみ」と呼ばなくても続けて話せるように少し聞き取る
+let followOn = store("hisho-follow") !== "off";
+let followNext = false; // 次に読み終えたとき続けて聞き取るか（会話の返事のときだけ true）
+const canFollow = () => { try { return !!native && typeof native.followUp === "function"; } catch { return false; } };
+const END_WORDS = /^(ありがと|サンキュー|もういい|もう大丈夫|大丈夫です|終わり|おわり|おしまい|以上|バイバイ|またね|おやすみ|ストップ|止めて|やめて|静かにして)/;
+function doneSpeaking() {
+  const follow = followNext && followOn && canFollow();
+  followNext = false;
+  if (!busy) setCore("idle");
+  if (!native) return;
+  try { follow ? native.followUp() : native.resumeWake(); } catch {}
+}
+function speak(text, force) {
+  if (native) {
+    if (!speakOn && !force) return doneSpeaking();
+    const t = forSpeech(text);
+    if (!t) return doneSpeaking();
+    setCore("speaking");
+    try { native.speak(t, voiceRate); } catch { doneSpeaking(); }
+    return;
+  }
+  if ((!speakOn && !force) || !("speechSynthesis" in window)) return setCore("idle");
+  try {
+    stopSpeaking();
+    const id = speechId;
+    const v = currentVoice();
+    const parts = sentences(forSpeech(text));
+    if (!parts.length) return setCore("idle");
+    setCore("speaking");
+    parts.forEach((s, i) => {
+      const u = new SpeechSynthesisUtterance(s);
+      u.lang = "ja-JP"; u.rate = voiceRate; u.pitch = 1.0;
+      if (v) u.voice = v;
+      if (i === parts.length - 1) u.onend = u.onerror = () => { if (id === speechId && !busy) setCore("idle"); };
+      speechSynthesis.speak(u);
+    });
+  } catch { setCore("idle"); }
+}
+
+// ---------- 声の設定 ----------
+function fillVoices() {
+  const sel = $("voiceSelect");
+  const list = jaVoices();
+  sel.innerHTML = "";
+  if (!list.length) { sel.appendChild(el("option", null, "この端末の標準の声")); sel.disabled = true; return; }
+  sel.disabled = false;
+  const best = list[0];
+  for (const v of list) {
+    const o = el("option", null, v.name.replace(/Microsoft |Google |\(.*?\)/g, "").trim() + (v === best ? "（おすすめ）" : ""));
+    o.value = v.name; sel.appendChild(o);
+  }
+  sel.value = currentVoice()?.name || best.name;
+}
+try { speechSynthesis.onvoiceschanged = fillVoices; } catch {}
+$("settingsBtn").onclick = () => { const p = $("settings"); p.hidden = !p.hidden; $("settingsBtn").setAttribute("aria-expanded", String(!p.hidden)); if (!p.hidden) fillVoices(); };
+$("voiceSelect").onchange = (e) => { voiceName = e.target.value; store("hisho-voice", voiceName); speak("この声でお話しします。", true); };
+$("rate").value = String(voiceRate);
+$("rateLabel").textContent = voiceRate.toFixed(1) + "x";
+$("rate").oninput = (e) => { voiceRate = Number(e.target.value); $("rateLabel").textContent = voiceRate.toFixed(1) + "x"; store("hisho-rate", String(voiceRate)); };
+$("tryVoice").onclick = () => speak("おはようございます、キミです。今日は15時に歯医者の予定があります。お気をつけて。", true);
+fillVoices();
+
+// ---------- 声で入力 ----------
+// この画面ではマイクを直接使えないことが多いので、使えなければキーボードの音声入力に案内する
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let micWorks = !!SR;
+$("mic").onclick = () => {
+  stopSpeaking();
+  scrollToCore();
+  if (native) { if (!busy) try { native.listenOnce(); } catch {} return; }
+  if (!micWorks) return fallbackMic();
+  try {
+    const r = new SR();
+    r.lang = "ja-JP"; r.interimResults = true;
+    r.onstart = () => $("mic").classList.add("listening");
+    r.onresult = (e) => { $("input").value = Array.from(e.results).map((x) => x[0].transcript).join(""); };
+    r.onerror = (e) => { if (e.error === "not-allowed" || e.error === "service-not-allowed" || e.error === "audio-capture") { micWorks = false; fallbackMic(); } };
+    r.onend = () => { $("mic").classList.remove("listening"); if ($("input").value.trim() && micWorks) $("form").requestSubmit(); };
+    r.start();
+  } catch { micWorks = false; fallbackMic(); }
+};
+function fallbackMic() {
+  $("input").focus();
+  showNote("キーボードのマイクボタンを押して話してください");
+}
+let noteTimer;
+function showNote(text) {
+  const h = $("hint"); h.textContent = text; h.style.color = "var(--cyan)";
+  clearTimeout(noteTimer);
+  noteTimer = setTimeout(() => { h.textContent = native ? "「きみ」と呼ぶか、マイクボタンを押して話しかけてください" : "声で話すときは、キーボードのマイクボタンを押してください"; h.style.color = ""; }, 5000);
+}
+
+// ---------- KIMI（Claude） ----------
+let turns = [];
+let busy = null; // AbortController while asking
+
+function rules() {
+  const now = new Date();
+  const days = [];
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(now); d.setDate(now.getDate() + i);
+    days.push(`${ymd(d)}(${WEEK[d.getDay()]})`);
+  }
+  return `あなたは「KIMI（キミ）」という名前の、日本語で話す気配りのできるAI秘書です。ユーザーとは音声で会話しており、あなたの返事はそのまま読み上げられます。名前を聞かれたら「KIMIです」と答えます。
+
+話し方:
+- 結論だけを、できるだけ短く言う（普段は1文、多くても2文）。
+- 前置き・相づち・締めの言葉は言わない。「〜しますね」「承知しました」「かしこまりました」「調べてみます」「確認します」「何かあれば言ってください」などは禁止。
+- 道具を使う前に何も言わない。道具を使い終わってから答えだけを言う。
+- Markdown、記号の箇条書き、表、絵文字、URLは使わない。
+- 時刻は「15時30分」、日付は「9月25日」のように言う。
+
+仕事:
+- 予定・タスク・メモは必ずツールで登録・変更・削除する。ツールを使わずに「登録しました」と言ってはいけない。
+- 日付は YYYY-MM-DD で渡す。「明日」「来週の月曜」などは下のカレンダーで変換する。
+- 登録や削除をしたら「明日15時、歯医者を登録しました。」のように一文で伝える。
+- 予定やタスクを聞かれたら、下の現在のデータを見て答える。
+- 写真が送られたら、写っているものをよく見て答える。文字が写っていれば正確に読み取る。チラシや案内の写真で「予定に入れて」と言われたら、日時と内容を読み取って add_event で登録する。
+- 写真の説明も短く（1〜3文）。長い文章を読み上げるときだけは、頼まれた範囲をそのまま読む。
+${canSearch
+  ? `- インターネットで調べられる。天気は get_weather、ニュースは get_news、それ以外の調べものは web_search を使い、必要なら read_page でページを読む。
+- 最新の情報や自信のないことは、推測で答えずに必ず調べてから答える。情報元は聞かれたときだけ言う。
+- 調べた内容は、聞かれたことへの答えだけを1〜2文で言う。例:「大阪の明日は晴れ、最高28度です。」`
+  : `- インターネット検索はできない。天気や最新ニュースを聞かれたら、KIMI のアプリで開くと調べられることを伝える。`}
+${canAct
+  ? `- スマホを操作できる。「〇分後に教えて」「〇時に知らせて」は set_reminder、一覧は list_reminders、取り消しは cancel_reminder。予定の前に知らせてほしいときも set_reminder を使う。
+- 「起こして」「アラーム」「目覚まし」という言葉があれば、必ず set_alarm で時計アプリに設定する。「明日7時に起こして」「明日の朝6時にアラーム」も set_alarm（時計アプリは次にその時刻が来たときに鳴らす）。set_reminder は使わない。
+- 「毎朝」「平日」などの繰り返しは repeat で指定する。set_reminder を使うのは「起こして」「アラーム」と言われず、「〇日の〇時に知らせて」「〇分後に教えて」のように通知を頼まれたときだけ。
+- set_alarm の message には必ず用件を入れる（例: 起床、病院に行く、薬を飲む）。会話から用件がわかればそれを、言われていなければ「起床」のように一言で入れる。鳴るときに KIMI がその用件を知らせる。
+- set_alarm のあとは「7時のアラームを設定しました。用件は病院です。」のように一文で伝える。
+- 「〇分計って」「〇分のタイマー」は set_timer。アラームの確認や削除を頼まれたら show_alarms で一覧を開き、「時計アプリで確認してください」と伝える（KIMI からアラームを消すことはできない）。
+- 「〇〇を開いて」は open_app、道案内や場所は open_map、YouTube の動画は youtube、電話は call、メッセージ・LINE・メールは send_message を使う。
+- 電話やメッセージは画面を開くだけ。開いたら「発信ボタンを押してください」「送信ボタンを押してください」のように一文で伝える。
+- 連絡先の候補が複数返ってきたら、どの人か短く聞き返す。
+- add_event で登録した予定は、設定がオンなら Google カレンダーにも自動で登録される（結果は返り値の Googleカレンダー に入る）。登録できなかったときだけ、そのことを一言添える。
+- 予定を聞かれたら、現在のデータ（KIMI の予定）に加えて calendar_events で Google カレンダーの予定も確認し、合わせて答える。Google カレンダーにだけある予定の削除は delete_calendar_event。
+- 「〇〇の曲をかけて」は play_music、「ライトつけて」は flashlight、「音量を上げて」は set_volume、「Keep にメモして」は keep_note。`
+  : ""}
+
+現在日時: ${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日(${WEEK[now.getDay()]}) ${pad(now.getHours())}時${pad(now.getMinutes())}分
+今日から2週間のカレンダー: ${days.join(" ")}
+
+現在のデータ(JSON):
+${JSON.stringify({ 予定: state.events.filter((e) => e.date >= todayStr()), タスク: state.tasks, メモ: state.memos.slice(-40) })}`;
+}
+
+const obj = (properties, required) => ({ type: "object", properties, required });
+// 日付・時刻は「2026/9/28」「9月28日」「15時」「午後3時半」などの書き方でも受け付ける
+const toHalf = (s) => String(s ?? "").trim().replace(/[０-９：／]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+function normDate(v) {
+  const s = toHalf(v);
+  let y, mo, d;
+  let m = s.match(/^(\d{4})\s*[-\/.年]\s*(\d{1,2})\s*[-\/.月]\s*(\d{1,2})/);
+  if (m) [y, mo, d] = [+m[1], +m[2], +m[3]];
+  else if ((m = s.match(/^(\d{1,2})\s*[\/月]\s*(\d{1,2})/))) {
+    [mo, d] = [+m[1], +m[2]];
+    y = new Date().getFullYear();
+    if (`${y}-${pad(mo)}-${pad(d)}` < todayStr()) y++; // 過ぎた日付なら来年
+  } else return null;
+  const dt = new Date(y, mo - 1, d);
+  if (dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+  return ymd(dt);
+}
+function normTime(v) {
+  const s = toHalf(v);
+  if (!s) return undefined;
+  const m = s.match(/(\d{1,2})\s*[:時]\s*(\d{1,2})?/) || s.match(/^(\d{1,2})()$/);
+  if (!m) return undefined;
+  let h = +m[1], min = m[2] ? +m[2] : (/半/.test(s) ? 30 : 0);
+  if (/午後|pm/i.test(s) && h < 12) h += 12;
+  if (/午前|am/i.test(s) && h === 12) h = 0;
+  if (h > 23 || min > 59) return undefined;
+  return `${pad(h)}:${pad(min)}`;
+}
+
+// 調べるだけの道具（これだけを使って「設定しました」と言ったら、やり直させる）
+const READ_ONLY_TOOLS = new Set(["web_search", "read_page", "get_weather", "get_news", "list_reminders", "calendar_events"]);
+const TOOL_LABELS = {
+  add_event: "予定の登録", delete_event: "予定の削除", add_task: "タスクの追加", update_task: "タスクの更新",
+  save_memo: "メモの保存", delete_memo: "メモの削除", web_search: "検索", read_page: "ページを読む",
+  get_weather: "天気", get_news: "ニュース", set_reminder: "KIMI のリマインダー", list_reminders: "リマインダー一覧",
+  cancel_reminder: "リマインダーの取り消し", set_alarm: "時計アプリのアラーム", set_timer: "時計アプリのタイマー",
+  show_alarms: "アラーム一覧", open_app: "アプリを開く", open_map: "地図", youtube: "YouTube", call: "電話", send_message: "メッセージ",
+  calendar_events: "Google カレンダーを見る", delete_calendar_event: "Google カレンダーの予定を削除", play_music: "音楽",
+  flashlight: "ライト", set_volume: "音量", keep_note: "Google Keep",
+};
+const tools = [
+  {
+    name: "add_event", description: "カレンダーに予定を追加する。予定の登録を頼まれたら必ずこれを呼ぶ。登録した予定を返す。",
+    inputSchema: obj({ title: { type: "string" }, date: { type: "string", description: "YYYY-MM-DD" }, time: { type: "string", description: "HH:MM（24時間制）。終日なら省略" }, note: { type: "string", description: "場所など" } }, ["title", "date"]),
+    execute: async (i) => {
+      const date = normDate(i.date);
+      if (!date) throw new Error("日付が読み取れません。date は YYYY-MM-DD で指定してください");
+      if (!String(i.title || "").trim()) throw new Error("予定の内容(title)が空です");
+      const time = normTime(i.time);
+      const e = { id: newId(), title: String(i.title), date, ...(time && { time }), ...(i.note && { note: String(i.note) }) };
+      state.events.push(e); sortEvents(); save();
+      const g = await copyToGoogle(e);
+      return { ...e, Googleカレンダー: g };
+    },
+  },
+  {
+    name: "delete_event", description: "KIMI に登録した予定をIDで削除する（Google カレンダーに一緒に登録したものも消える）。IDは現在のデータから探す。",
+    inputSchema: obj({ id: { type: "string" } }, ["id"]),
+    execute: async (i) => {
+      const e = state.events.find((x) => x.id === String(i.id));
+      if (!e) throw new Error("その予定は見つかりません");
+      await removeEvent(e);
+      return "deleted";
+    },
+  },
+  {
+    name: "add_task", description: "タスク（やること）を追加する。",
+    inputSchema: obj({ title: { type: "string" }, due: { type: "string", description: "期限 YYYY-MM-DD（任意）" } }, ["title"]),
+    execute: (i) => {
+      const due = normDate(i.due) || undefined;
+      const t = { id: newId(), title: String(i.title), done: false, ...(due && { due }) };
+      state.tasks.push(t); save(); return t;
+    },
+  },
+  {
+    name: "update_task", description: "タスクを完了にする（done=true）、未完了に戻す（done=false）、または削除する（remove=true）。",
+    inputSchema: obj({ id: { type: "string" }, done: { type: "boolean" }, remove: { type: "boolean" } }, ["id"]),
+    execute: (i) => {
+      const t = state.tasks.find((x) => x.id === String(i.id));
+      if (!t) throw new Error("そのタスクは見つかりません");
+      if (i.remove) state.tasks = state.tasks.filter((x) => x !== t);
+      else t.done = i.done !== false;
+      save(); return "ok";
+    },
+  },
+  {
+    name: "save_memo", description: "覚えておいてほしいと言われたことをメモとして保存する。",
+    inputSchema: obj({ content: { type: "string" } }, ["content"]),
+    execute: (i) => {
+      const m = { id: newId(), content: String(i.content), createdAt: new Date().toISOString() };
+      state.memos.push(m); save(); return m;
+    },
+  },
+  {
+    name: "delete_memo", description: "メモをIDで削除する。",
+    inputSchema: obj({ id: { type: "string" } }, ["id"]),
+    execute: (i) => {
+      const before = state.memos.length;
+      state.memos = state.memos.filter((m) => m.id !== String(i.id));
+      if (state.memos.length === before) throw new Error("そのメモは見つかりません");
+      save(); return "deleted";
+    },
+  },
+];
+
+// ---------- インターネットで調べる（KIMI のアプリの中だけ） ----------
+const canSearch = !!native && (() => { try { return typeof native.fetch === "function"; } catch { return false; } })();
+const netWaiters = new Map();
+let netSeq = 0;
+function nativeFetch(kind, arg, label) {
+  setCore("searching");
+  if (label) $("heard").textContent = label;
+  return new Promise((resolve, reject) => {
+    const id = "n" + (++netSeq);
+    const timer = setTimeout(() => { netWaiters.delete(id); reject(new Error("時間内に調べ終わりませんでした")); }, 30000);
+    netWaiters.set(id, (text) => {
+      clearTimeout(timer);
+      netWaiters.delete(id);
+      $("heard").textContent = "";
+      setCore("thinking");
+      if (text.startsWith("ERROR:")) reject(new Error(text.slice(6).trim()));
+      else resolve(text);
+    });
+    try { native.fetch(id, kind, String(arg || "")); } catch (e) { clearTimeout(timer); netWaiters.delete(id); reject(new Error("調べる機能が使えません")); }
+  });
+}
+const netTools = [
+  {
+    name: "web_search", description: "インターネットを検索して、上位の結果（タイトル・URL・要約）をJSONで返す。最新の情報や、知らないこと・確かめたいことを調べるときに使う。",
+    inputSchema: obj({ query: { type: "string", description: "検索する言葉" } }, ["query"]),
+    execute: (i) => nativeFetch("search", i.query, "検索中: " + String(i.query || "")),
+  },
+  {
+    name: "read_page", description: "ウェブページを開いて、本文のテキスト（最大4000文字）を返す。検索結果の要約だけでは足りないときに使う。",
+    inputSchema: obj({ url: { type: "string", description: "http(s) で始まるURL" } }, ["url"]),
+    execute: (i) => nativeFetch("page", i.url, "ページを読んでいます"),
+  },
+  {
+    name: "get_weather", description: "場所の現在の天気と3日間の予報（天気・気温・降水確率）を返す。",
+    inputSchema: obj({ place: { type: "string", description: "市区町村名（例: 渋谷区、大阪市）。わからなければ東京" } }, ["place"]),
+    execute: (i) => nativeFetch("weather", i.place, "天気を確認中: " + String(i.place || "")),
+  },
+  {
+    name: "get_news", description: "日本の最新ニュースの見出し（最大8件）を返す。query を指定するとその話題のニュース、空なら主要ニュース。",
+    inputSchema: obj({ query: { type: "string", description: "話題（任意）" } }),
+    execute: (i) => nativeFetch("news", i.query, "ニュースを確認中"),
+  },
+];
+
+// ---------- スマホの操作（KIMI のアプリの中だけ） ----------
+const canAct = !!native && (() => { try { return typeof native.act === "function"; } catch { return false; } })();
+function nativeAct(kind, args, label) {
+  if (label) $("heard").textContent = label;
+  return new Promise((resolve, reject) => {
+    const id = "a" + (++netSeq);
+    // 連絡先や通知の許可を聞く画面が出ることがあるので、長めに待つ
+    const timer = setTimeout(() => { netWaiters.delete(id); reject(new Error("スマホからの返事がありませんでした")); }, 90000);
+    netWaiters.set(id, (text) => {
+      clearTimeout(timer);
+      netWaiters.delete(id);
+      $("heard").textContent = "";
+      if (text.startsWith("ERROR:")) reject(new Error(text.slice(6).trim()));
+      else resolve(text);
+    });
+    try { native.act(id, kind, JSON.stringify(args || {})); } catch { clearTimeout(timer); netWaiters.delete(id); reject(new Error("スマホの操作が使えません")); }
+  });
+}
+const fmtWhen = (ms) => { const d = new Date(ms); return `${d.getMonth() + 1}月${d.getDate()}日(${WEEK[d.getDay()]}) ${d.getHours()}時${pad(d.getMinutes())}分`; };
+async function refreshReminders() {
+  if (!canAct) return;
+  try { reminders = JSON.parse(await nativeAct("reminder_list", {})); } catch { reminders = []; }
+  render();
+}
+const actTools = [
+  {
+    name: "set_reminder", description: "時刻になったらスマホに通知して知らせる（リマインダー・タイマー）。in_minutes（何分後）か at（日時）のどちらかを指定する。",
+    inputSchema: obj({
+      message: { type: "string", description: "知らせる内容（例: 薬を飲む）" },
+      in_minutes: { type: "number", description: "今から何分後か（タイマー）" },
+      at: { type: "string", description: "日時 YYYY-MM-DD HH:MM（24時間制）" },
+    }, ["message"]),
+    execute: async (i) => {
+      let when = null;
+      const mins = Number(i.in_minutes);
+      if (mins > 0) when = Date.now() + mins * 60000;
+      else if (i.at) {
+        const s = String(i.at).trim();
+        const date = normDate(s.split(/[ T]/)[0]) || todayStr();
+        const time = normTime(s.includes(" ") || s.includes("T") ? s.split(/[ T]/).slice(1).join(" ") : s);
+        if (!time) throw new Error("時刻が読み取れません。at は YYYY-MM-DD HH:MM で指定してください");
+        const [y, mo, d] = date.split("-").map(Number), [h, mi] = time.split(":").map(Number);
+        when = new Date(y, mo - 1, d, h, mi).getTime();
+        if (when <= Date.now() && !normDate(s.split(/[ T]/)[0])) when += 86400000; // 日付なしで過ぎた時刻なら明日
+      }
+      if (!when) throw new Error("いつ知らせるか（in_minutes か at）を指定してください");
+      await nativeAct("reminder_set", { id: "r" + Date.now().toString(36), when, message: String(i.message) });
+      refreshReminders();
+      return `OK: ${fmtWhen(when)} に「${i.message}」と知らせます`;
+    },
+  },
+  {
+    name: "list_reminders", description: "これから知らせる予定のリマインダーの一覧を返す。",
+    execute: async () => {
+      const list = JSON.parse(await nativeAct("reminder_list", {}));
+      return list.length ? list.map((r) => ({ id: r.id, 日時: fmtWhen(r.when), 内容: r.message })) : "リマインダーはありません";
+    },
+  },
+  {
+    name: "cancel_reminder", description: "リマインダーをIDで取り消す。IDは list_reminders で調べる。",
+    inputSchema: obj({ id: { type: "string" } }, ["id"]),
+    execute: async (i) => { const r = await nativeAct("reminder_cancel", { id: String(i.id) }); refreshReminders(); return r; },
+  },
+  {
+    name: "set_alarm", description: "スマホの時計アプリにアラーム（目覚まし）を設定する。「〇時に起こして」「〇時にアラーム」はこれを使う。時刻だけで、日付は指定できない（次にその時刻が来たとき鳴る）。",
+    inputSchema: obj({
+      time: { type: "string", description: "時刻 HH:MM（24時間制。例: 07:00、18:30）" },
+      message: { type: "string", description: "アラームの用件（必ず入れる。例: 起床、病院に行く、薬を飲む）" },
+      repeat: { type: "string", enum: ["none", "everyday", "weekdays", "weekends", "custom"], description: "繰り返し（標準は none）" },
+      days: { type: "array", items: { type: "string", enum: ["日", "月", "火", "水", "木", "金", "土"] }, description: "repeat が custom のときの曜日" },
+    }, ["time", "message"]),
+    execute: async (i) => {
+      const time = normTime(i.time);
+      if (!time) throw new Error("時刻が読み取れません。time は HH:MM で指定してください");
+      const [hour, minute] = time.split(":").map(Number);
+      const DAY = { 日: 1, 月: 2, 火: 3, 水: 4, 木: 5, 金: 6, 土: 7 }; // 時計アプリの曜日番号
+      const days = { everyday: [1, 2, 3, 4, 5, 6, 7], weekdays: [2, 3, 4, 5, 6], weekends: [1, 7] }[i.repeat]
+        || (i.repeat === "custom" && Array.isArray(i.days) ? i.days.map((d) => DAY[d]).filter(Boolean) : []);
+      return nativeAct("alarm_set", { hour, minute, message: String(i.message || ""), days }, "アラームを設定しています");
+    },
+  },
+  {
+    name: "set_timer", description: "スマホの時計アプリでタイマーを始める（「3分計って」「10分のタイマー」）。",
+    inputSchema: obj({
+      minutes: { type: "number", description: "分" },
+      seconds: { type: "number", description: "秒（任意）" },
+      message: { type: "string", description: "タイマーの名前（任意。例: カップ麺）" },
+    }),
+    execute: (i) => {
+      const total = Math.round((Number(i.minutes) || 0) * 60 + (Number(i.seconds) || 0));
+      if (total <= 0) throw new Error("タイマーの長さを minutes か seconds で指定してください");
+      return nativeAct("timer_set", { seconds: total, message: String(i.message || "") }, "タイマーを始めています");
+    },
+  },
+  {
+    name: "show_alarms", description: "時計アプリのアラーム一覧の画面を開く（アラームの確認・削除はそこで本人が行う）。",
+    execute: () => nativeAct("alarm_show", {}, "アラーム一覧を開いています"),
+  },
+  {
+    name: "open_app", description: "スマホに入っているアプリを名前で開く（例: YouTube、LINE、カメラ、時計）。",
+    inputSchema: obj({ name: { type: "string", description: "アプリの名前" } }, ["name"]),
+    execute: (i) => nativeAct("open_app", { name: String(i.name || "") }, "アプリを開いています"),
+  },
+  {
+    name: "open_map", description: "Google マップで、行き先までの道案内か、場所の検索を開く。",
+    inputSchema: obj({
+      destination: { type: "string", description: "行き先や場所（例: 渋谷駅、近くのコンビニ）" },
+      mode: { type: "string", enum: ["transit", "walking", "driving", "bicycling", "search"], description: "transit=電車・バス（標準）、walking=徒歩、driving=車、bicycling=自転車、search=場所を探すだけ" },
+    }, ["destination"]),
+    execute: (i) => nativeAct("open_map", { destination: String(i.destination || ""), mode: String(i.mode || "transit") }, "地図を開いています"),
+  },
+  {
+    name: "youtube", description: "YouTube で動画を検索して開く。",
+    inputSchema: obj({ query: { type: "string", description: "探す動画" } }, ["query"]),
+    execute: (i) => nativeAct("youtube", { query: String(i.query || "") }, "YouTube を開いています"),
+  },
+  {
+    name: "call", description: "電話をかける画面を開く（発信ボタンは本人が押す）。連絡先の名前か電話番号で指定する。",
+    inputSchema: obj({ to: { type: "string", description: "連絡先の名前（例: お母さん、田中）か電話番号" } }, ["to"]),
+    execute: (i) => nativeAct("call", { to: String(i.to || "") }, "電話の準備をしています"),
+  },
+  {
+    name: "send_message", description: "メッセージを送る画面を、文章を入れた状態で開く（送信ボタンは本人が押す）。",
+    inputSchema: obj({
+      to: { type: "string", description: "送り先の名前か電話番号（LINE のときは空でもよい）" },
+      text: { type: "string", description: "送る文章" },
+      app: { type: "string", enum: ["sms", "line", "email"], description: "sms=SMS・メッセージ（標準）、line=LINE、email=メール" },
+    }, ["text"]),
+    execute: (i) => nativeAct("message", { to: String(i.to || ""), text: String(i.text || ""), app: String(i.app || "sms") }, "送信の準備をしています"),
+  },
+];
+
+// ---------- Google カレンダー（スマホのカレンダー経由。アプリの中だけ） ----------
+let gcalOn = store("hisho-gcal") !== "off";
+const atMs = (date, time) => { const [y, mo, d] = date.split("-").map(Number); const [h, mi] = (time || "00:00").split(":").map(Number); return new Date(y, mo - 1, d, h, mi).getTime(); };
+
+// KIMI に登録した予定を Google カレンダーにも書く。結果を一言で返す（失敗しても KIMI の予定は残す）
+async function copyToGoogle(e) {
+  if (!canAct || !gcalOn) return "登録しない設定";
+  try {
+    const start = atMs(e.date, e.time);
+    const r = JSON.parse(await nativeAct("cal_add", { title: e.title, start, end: start + 3600000, allDay: !e.time, note: e.note || "" }, "Google カレンダーに登録しています"));
+    e.gcalId = r.id;
+    save();
+    return "登録しました";
+  } catch (err) {
+    return "登録できませんでした（" + (err?.message || "エラー") + "）";
+  }
+}
+async function removeEvent(e) {
+  state.events = state.events.filter((x) => x.id !== e.id);
+  save();
+  if (e.gcalId && canAct) { try { await nativeAct("cal_delete", { id: e.gcalId }); } catch {} refreshGcal(); }
+}
+async function loadGcal(fromMs, toMs) {
+  return JSON.parse(await nativeAct("cal_list", { from: fromMs, to: toMs }));
+}
+async function refreshGcal() {
+  if (!canAct) return;
+  const from = atMs(todayStr());
+  try { gcalEvents = await loadGcal(from, from + 14 * 86400000); } catch { gcalEvents = []; }
+  render();
+}
+
+const appTools = [
+  {
+    name: "calendar_events", description: "Google カレンダー（スマホのカレンダー）にある予定を読む。予定を聞かれたら、KIMI のデータと合わせてこれも確認する。",
+    inputSchema: obj({
+      from: { type: "string", description: "いつから YYYY-MM-DD（標準は今日）" },
+      days: { type: "number", description: "何日分（標準は7）" },
+    }),
+    execute: async (i) => {
+      const from = atMs(normDate(i.from) || todayStr());
+      const days = Math.min(62, Math.max(1, Number(i.days) || 7));
+      const mine = new Set(state.events.map((e) => e.gcalId).filter(Boolean));
+      const list = (await loadGcal(from, from + days * 86400000)).filter((x) => !mine.has(x.id));
+      if (!list.length) return "この期間の Google カレンダーの予定はありません（KIMI に登録した予定は現在のデータを見る）";
+      return list.map((x) => ({ id: x.id, 日時: x.allDay ? fmtWhen(x.begin).replace(/ .*/, " 終日") : fmtWhen(x.begin), 内容: x.title, ...(x.location && { 場所: x.location }) }));
+    },
+  },
+  {
+    name: "delete_calendar_event", description: "Google カレンダーの予定をIDで削除する。IDは calendar_events で調べる。",
+    inputSchema: obj({ id: { type: "string" } }, ["id"]),
+    execute: async (i) => {
+      const r = await nativeAct("cal_delete", { id: String(i.id) });
+      const linked = state.events.find((e) => e.gcalId === String(i.id));
+      if (linked) { state.events = state.events.filter((e) => e !== linked); save(); }
+      refreshGcal();
+      return r;
+    },
+  },
+  {
+    name: "play_music", description: "曲・アーティスト・プレイリストを音楽アプリで再生する。",
+    inputSchema: obj({
+      query: { type: "string", description: "曲名やアーティスト名" },
+      app: { type: "string", enum: ["any", "spotify", "youtube_music"], description: "使うアプリ（指定がなければ any）" },
+    }, ["query"]),
+    execute: (i) => nativeAct("music", { query: String(i.query || ""), app: String(i.app || "any") }, "音楽を探しています"),
+  },
+  {
+    name: "flashlight", description: "スマホのライト（懐中電灯）をつける・消す。",
+    inputSchema: obj({ on: { type: "boolean", description: "true=つける、false=消す" } }, ["on"]),
+    execute: (i) => nativeAct("torch", { on: i.on !== false }),
+  },
+  {
+    name: "set_volume", description: "音楽・動画の音量を変える。",
+    inputSchema: obj({
+      action: { type: "string", enum: ["set", "up", "down", "mute", "max"], description: "set=percent の大きさにする、up=上げる、down=下げる、mute=消音、max=最大" },
+      percent: { type: "number", description: "action が set のときの音量（0〜100）" },
+    }, ["action"]),
+    execute: (i) => nativeAct("volume", { action: String(i.action || "set"), percent: Number(i.percent) || 50 }),
+  },
+  {
+    name: "keep_note", description: "Google Keep にメモを書く画面を、内容を入れた状態で開く（保存は本人が戻るボタンで行う）。「Keep に」と言われたときだけ使う。ふつうのメモは save_memo。",
+    inputSchema: obj({ text: { type: "string" }, title: { type: "string", description: "タイトル（任意）" } }, ["text"]),
+    execute: (i) => nativeAct("keep", { text: String(i.text || ""), title: String(i.title || "") }, "Google Keep を開いています"),
+  },
+];
+
+// ---------- 渡す道具を選ぶ ----------
+// 一度に渡せる道具の数には上限があるので、頼まれた内容に合う道具を優先して、上限までにおさめる
+const TOOL_WORDS = {
+  web_search: /調べ|検索|とは|って何|ってなに|誰|だれ|いつ|どこ|なぜ|どうして|最新|値段|価格|営業時間/,
+  read_page: /ページ|サイト|詳しく|くわしく/,
+  get_weather: /天気|気温|雨|雪|傘|晴れ|くもり|暑|寒/,
+  get_news: /ニュース|話題|事件|速報/,
+  set_reminder: /分後|時間後|秒後|時に|知らせ|教えて|リマインド|リマインダ|忘れない|通知/,
+  list_reminders: /リマインダ|通知/,
+  cancel_reminder: /リマインダ|通知|取り消|消して|キャンセル|やめ/,
+  set_alarm: /アラーム|起こして|目覚まし|起きる|起床/,
+  set_timer: /タイマー|計って|はかって|分間|秒間/,
+  show_alarms: /アラーム/,
+  calendar_events: /予定|スケジュール|カレンダー|空いて|あいて|今日|明日|今週|来週|週末/,
+  delete_calendar_event: /カレンダー|予定.*(消|削除|キャンセル)/,
+  play_music: /曲|音楽|歌|かけて|流して|再生|プレイリスト|spotify|スポティファイ/i,
+  flashlight: /ライト|懐中電灯|かいちゅうでんとう|明かり|フラッシュ/,
+  set_volume: /音量|ボリューム|うるさい|聞こえない|小さく|大きく|ミュート/,
+  keep_note: /keep|キープ/i,
+  open_app: /開いて|ひらいて|起動|アプリ|カメラ|時計|電卓|設定/,
+  open_map: /道|行き方|いきかた|地図|マップ|ナビ|案内|近くの|どうやって行|までの/,
+  youtube: /youtube|ユーチューブ|動画|ビデオ/i,
+  call: /電話|でんわ|かけて|コール/,
+  send_message: /メッセージ|送って|おくって|送信|line|ライン|メール|sms|連絡/i,
+};
+let toolMax = null;
+async function toolLimit(sample) {
+  if (toolMax !== null) return toolMax;
+  try { toolMax = (await sample.limits())?.tools?.maxCount || 0; } catch { toolMax = 0; }
+  return toolMax;
+}
+function pickTools(text, max) {
+  const extra = [...(canSearch ? netTools : []), ...(canAct ? [...actTools, ...appTools] : [])];
+  const all = [...tools, ...extra];
+  if (!max || all.length <= max) return all;
+  // 直前の会話も手がかりにする（「じゃあ30分前に知らせて」など）
+  const hint = [text, ...turns.slice(-3).map((t) => t.content)].join(" ");
+  const hit = extra.filter((t) => TOOL_WORDS[t.name]?.test(hint));
+  const rest = extra.filter((t) => !hit.includes(t));
+  const core = tools.filter((t) => t.name === "add_event" || t.name === "add_task" || t.name === "save_memo");
+  const coreRest = tools.filter((t) => !core.includes(t));
+  // 優先順: 基本の登録 → 頼まれた内容に合う道具 → そのほかの予定・メモの道具 → 残り
+  const ordered = [...core, ...hit, ...coreRest, ...rest];
+  return ordered.slice(0, max);
+}
+
+const ERRORS = {
+  not_granted: "Claudeの利用が許可されませんでした。ページを開き直すと、もう一度許可を確認できます。",
+  sampling_disabled: "このアカウントではClaudeを利用できません。",
+  rate_limited: "利用が集中しているか、利用枠の上限に達しました。少し時間をおいてからもう一度どうぞ。",
+  session_expired: "ログインが切れました。claude.ai にログインし直してください。",
+  refused: "そのご依頼にはお応えできませんでした。言い方を変えてみてください。",
+  tools_unavailable: "この画面では予定の登録機能が使えません。claude.ai のアプリかブラウザで開いてください。",
+  images_unavailable: "この画面では写真を送れません。",
+  image_rejected: "この写真は読み取れませんでした。JPEG か PNG の写真でもう一度お試しください。",
+};
+
+function addMsg(role, text, extra) {
+  const m = el("div", `msg ${role}${extra ? " " + extra : ""}`, text);
+  $("log").appendChild(m); scrollDown(); return m;
+}
+function setBusy(ctl) {
+  busy = ctl;
+  $("send").classList.toggle("stop", !!ctl);
+  $("send").setAttribute("aria-label", ctl ? "止める" : "送信");
+  $("send").innerHTML = ctl
+    ? '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="2"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>';
+}
+
+async function ask(text) {
+  showTab("chat");
+  if (native) try { native.pauseWake(); } catch {}
+  $("heard").textContent = "";
+  const photo = takePhoto(); // 添付した写真は、この1回の質問に使う
+  const userMsg = addMsg("user", text);
+  if (photo) { const img = el("img"); img.alt = "送った写真"; img.src = URL.createObjectURL(photo); userMsg.prepend(img); }
+  const bubble = addMsg("ai", "考えています…", "pending");
+  setCore("thinking");
+  const sample = window.claude?.use ? await claude.use("sample") : null;
+  if (!sample) {
+    bubble.className = "msg ai error";
+    bubble.textContent = "このページは claude.ai にログインした状態で開いてください。";
+    setCore("error");
+    if (native) setTimeout(() => { try { native.resumeWake(); } catch {} }, 1500);
+    return;
+  }
+  turns.push({ role: "user", content: photo ? `（写真を送りました）${text}` : text });
+  const ctl = new AbortController();
+  setBusy(ctl);
+  let reply = null;
+  try {
+    // 道具を使った回は、途中の前置き（「調べますね」など）を捨てて最後の答えだけを残す
+    let usedTool = false, wrote = false;
+    const used = []; // 実際に使えた機能（返事の下に小さく表示する）
+    const chosen = pickTools(text, await toolLimit(sample));
+    const wrapped = chosen
+      .map((t) => ({ ...t, execute: async (i, c) => {
+        usedTool = true;
+        try {
+          const out = await t.execute(i, c); // 失敗したら throw され、wrote は立たない
+          if (!READ_ONLY_TOOLS.has(t.name)) wrote = true;
+          used.push(TOOL_LABELS[t.name] || t.name);
+          return out;
+        } catch (err) {
+          used.push((TOOL_LABELS[t.name] || t.name) + "（失敗: " + (err?.message || "エラー") + "）");
+          throw err;
+        }
+      } }));
+    const lastPart = (s) => { const parts = s.trim().split(/\n\s*\n/).filter((p) => p.trim()); return parts.length ? parts[parts.length - 1].trim() : s.trim(); };
+    // アプリの中で写真をそのまま渡せないときは、スマホで読み取った結果を文章として添える
+    let sendPhoto = photo && photoMode === "claude" ? photo : null;
+    if (photo && !sendPhoto) {
+      bubble.textContent = "写真を読み取っています…";
+      const seen = await photoAsText(photo);
+      turns[turns.length - 1] = { role: "user", content: `（写真を送りました）${text}\n\n${seen}` };
+    }
+    const run = (input) => sample(input, {
+      tools: wrapped, signal: ctl.signal,
+      // 写真があるときは、文字や細かいところまで読めるように標準のモデルを使う
+      ...(sendPhoto ? { images: [sendPhoto], modelTier: "default" } : { modelTier: "quick" }),
+      onText: ({ text }) => { bubble.className = "msg ai"; bubble.textContent = usedTool ? lastPart(text) : text.trim(); scrollDown(); },
+    });
+    const input = [{ role: "user", content: rules() }, ...turns.slice(-12)];
+    let res = await run(input);
+    reply = usedTool ? lastPart(res.text) : res.text.trim();
+
+    // 「登録しました」などと言ったのに、実際には保存の道具が使われていなければ、やり直させる
+    const claimsWrite = /(登録|追加|保存|削除|完了|記録|入れ|メモ|覚え|設定|セット|始め|開き|開け|知らせ)[^。]{0,6}(しました|した|済み|ました|ておきます|ときます)/.test(reply);
+    if (claimsWrite && !wrote) {
+      bubble.className = "msg ai pending"; bubble.textContent = "考えています…";
+      usedTool = false;
+      res = await run([...input, { role: "assistant", content: reply }, { role: "user", content:
+        "（自動チェック）今の返事では、登録・設定・操作をする道具が一度も呼ばれていないので、実際には何も行われていません。" +
+        "依頼どおりに必ず道具を呼んで処理してから、結果を一文で答えてください。依頼が操作ではなかった場合は、そのまま答え直してください。" }]);
+      reply = usedTool ? lastPart(res.text) : res.text.trim();
+    }
+    bubble.className = "msg ai"; bubble.textContent = reply;
+    if (used.length) bubble.appendChild(el("span", "used", "使った機能: " + [...new Set(used)].join("、")));
+    turns.push({ role: "assistant", content: reply });
+  } catch (e) {
+    turns.pop();
+    if (e?.code === "cancelled") {
+      bubble.className = "msg ai"; bubble.textContent = (e.text || "").trim() || "止めました。";
+      setCore("idle");
+    } else {
+      bubble.className = "msg ai error";
+      bubble.textContent = (ERRORS[e?.code] || "うまく返事ができませんでした。もう一度送ってみてください。")
+        + `\n（エラーの種類: ${e?.code || "unknown"}${e?.message ? " / " + String(e.message).slice(0, 120) : ""}）`;
+      setCore("error");
+    }
+  } finally {
+    setBusy(null);
+    scrollDown();
+  }
+  if (reply) {
+    followNext = !END_WORDS.test(text.trim()); // 「ありがとう」などで会話を終える
+    speak(reply);
+  }
+  else if (native) setTimeout(() => { try { native.resumeWake(); } catch {} }, 1500);
+}
+
+// ---------- アプリの中で開いたとき: 「きみ」の呼びかけ ----------
+// 新しいアプリは待ち受けの状態をスマホ側で覚えていて、変わるたびに "state" で知らせてくる
+const nativeOwnsWake = !!native && (() => { try { return typeof native.isWakeOn === "function"; } catch { return false; } })();
+function paintWake(on) {
+  wakeOn = on;
+  $("wakeBtn").setAttribute("aria-pressed", String(on));
+  if (!busy) setCore("idle");
+}
+function setWake(on) {
+  if (!nativeOwnsWake) store("hisho-wake", on ? "on" : "off");
+  paintWake(on);
+  try { native.setWake(on); } catch {}
+}
+if (native) {
+  $("wakeBtn").hidden = false;
+  $("wakeBtn").onclick = () => {
+    setWake(!wakeOn);
+    showNote(wakeOn ? "「きみ」と呼ぶと反応します" : "呼びかけの待ち受けを止めました");
+  };
+  if (nativeOwnsWake) { try { paintWake(native.isWakeOn()); } catch {} }
+  if (canAct) {
+    $("gcalRow").hidden = false;
+    $("gcalToggle").checked = gcalOn;
+    $("gcalToggle").onchange = (e) => { gcalOn = e.target.checked; store("hisho-gcal", gcalOn ? "on" : "off"); };
+  }
+  if (canFollow()) {
+    $("followRow").hidden = false;
+    $("followToggle").checked = followOn;
+    $("followToggle").onchange = (e) => { followOn = e.target.checked; store("hisho-follow", followOn ? "on" : "off"); };
+  }
+  $("hint").textContent = "「きみ」と呼ぶか、マイクボタンを押して話しかけてください";
+  // 声の選択はスマホの読み上げ設定に任せる
+  $("voiceSelect").closest(".settings").querySelector('label[for="voiceSelect"]').hidden = true;
+  $("voiceSelect").hidden = true;
+  $("settings").querySelector(".tip").textContent = "声は、スマホの設定 →「音声出力」→「優先するエンジン」で変えられます。Google 音声サービスの日本語の音声データを入れると自然になります。";
+  if (!nativeOwnsWake && store("hisho-wake") === "on") setWake(true);
+
+  // アプリからの知らせ（呼ばれた・聞き取った・用件）を取りに行く
+  setInterval(() => {
+    for (let n = 0; n < 20; n++) {
+      let raw = "";
+      try { raw = native.poll(); } catch { return; }
+      if (!raw) return;
+      let ev; try { ev = JSON.parse(raw); } catch { continue; }
+      handleNative(ev);
+    }
+  }, 200);
+}
+function handleNative(ev) {
+    if (ev.type === "net") { const w = netWaiters.get(ev.id); if (w) w(ev.text || ""); }
+    else if (ev.type === "state") {
+      wakeOn = !!ev.wake;
+      $("wakeBtn").setAttribute("aria-pressed", String(wakeOn));
+      if (busy) return;
+      if (ev.text === "command") setCore("listening");
+      else if (ev.text === "waiting" || ev.text === "off") setCore("idle"); // 待ち受け中なら「きみ」と呼んでください と出る
+    }
+    else if (ev.type === "wake") { stopSpeaking(); scrollToCore(); setCore("listening"); $("heard").textContent = ""; }
+    else if (ev.type === "heard") $("heard").textContent = ev.text || "";
+    else if (ev.type === "command") { if (!busy) ask(ev.text); }
+    else if (ev.type === "idle") { $("heard").textContent = ""; if (!busy) setCore("idle"); }
+    else if (ev.type === "spoken") doneSpeaking();
+    else if (ev.type === "wakeoff") { wakeOn = false; store("hisho-wake", "off"); $("wakeBtn").setAttribute("aria-pressed", "false"); setCore("idle"); }
+    else if (ev.type === "error") showNote(ev.text || "音声の聞き取りでエラーが起きました");
+    else if (ev.type === "reminder") { showTab("chat"); addMsg("ai", "リマインダー: " + (ev.text || "")); setCore("speaking"); refreshReminders(); }
+}
+
+$("form").onsubmit = (e) => {
+  e.preventDefault();
+  if (busy) { busy.abort(); return; }
+  const v = $("input").value.trim();
+  if (!v && pendingPhoto) { stopSpeaking(); return ask("この写真に写っているものを教えて"); }
+  if (!v) return fallbackMic();
+  $("input").value = "";
+  stopSpeaking();
+  ask(v);
+};
+
+// ---------- 写真 ----------
+let pendingPhoto = null;
+function takePhoto() {
+  const p = pendingPhoto;
+  pendingPhoto = null;
+  $("attach").hidden = true;
+  return p;
+}
+// "claude": 写真をそのまま Claude に渡す / "phone": スマホで読み取った文字などを渡す（アプリの中で写真を渡せないとき）
+let photoMode = null;
+async function initPhoto() {
+  const s = window.claude?.use ? await claude.use("sample") : null;
+  if (!s) return;
+  const lim = await s.limits().catch(() => null);
+  if (lim?.images) photoMode = "claude";
+  else if (canAct) photoMode = "phone";
+  else return; // 写真を扱えない画面ではボタンを出さない
+  $("photoBtn").hidden = false;
+  if (lim?.images?.mediaTypes?.length) $("photoInput").accept = lim.images.mediaTypes.join(",");
+}
+
+// 写真を小さくして（長い辺 1600px）、スマホに渡せる形にする
+async function photoToBase64(file, max = 1600) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((resolve, reject) => { const i = new Image(); i.onload = () => resolve(i); i.onerror = reject; i.src = url; });
+    const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement("canvas");
+    c.width = Math.round(img.naturalWidth * scale);
+    c.height = Math.round(img.naturalHeight * scale);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    return c.toDataURL("image/jpeg", 0.88).split(",")[1];
+  } finally { URL.revokeObjectURL(url); }
+}
+
+// スマホの中で写真を読み取り、Claude に渡す文章にする
+async function photoAsText(photo) {
+  const data = await photoToBase64(photo);
+  const result = await nativeAct("vision", { data }, "写真を読み取っています");
+  return "（写真をスマホで読み取った結果です。写真そのものは見えないので、これをもとに答えてください。" +
+    "「写っているもの」は英語の自動判定なので、日本語に直して自然に説明してください。文字がなければ、写っているものから推測して答えてください）\n" + result.slice(0, 6000);
+}
+$("photoBtn").onclick = () => { stopSpeaking(); $("photoInput").click(); };
+$("photoInput").onchange = (e) => {
+  const f = e.target.files && e.target.files[0];
+  e.target.value = "";
+  if (!f) return;
+  pendingPhoto = f;
+  $("attachImg").src = URL.createObjectURL(f);
+  $("attach").hidden = false;
+  scrollToCore();
+};
+$("attachClear").onclick = () => { takePhoto(); };
+initPhoto();
+
+setCore("idle");
+initStore();
+</script>
