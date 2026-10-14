@@ -37,6 +37,13 @@ final class Actions {
             case "alarm_set": alarmSet(a, args, done); return;
             case "timer_set": timerSet(a, args, done); return;
             case "vision": Vision.read(args.optString("data"), done); return;
+            case "cal_add": withCalendar(a, true, done, () -> PhoneCalendar.add(a, args)); return;
+            case "cal_list": withCalendar(a, false, done, () -> PhoneCalendar.list(a, args.optLong("from"), args.optLong("to"))); return;
+            case "cal_delete": withCalendar(a, true, done, () -> PhoneCalendar.delete(a, args.optString("id"))); return;
+            case "music": done.done(Gadgets.music(a, args)); return;
+            case "torch": done.done(Gadgets.torch(a, args)); return;
+            case "volume": done.done(Gadgets.volume(a, args)); return;
+            case "keep": done.done(Gadgets.keep(a, args)); return;
             case "alarm_show": done.done(start(a, new Intent(AlarmClock.ACTION_SHOW_ALARMS), "時計アプリのアラーム一覧を開きました")); return;
             case "open_app": done.done(openApp(a, args.optString("name"))); return;
             case "open_map": done.done(openMap(a, args.optString("destination"), args.optString("mode"))); return;
@@ -45,6 +52,21 @@ final class Actions {
             case "message": message(a, args.optString("to"), args.optString("text"), args.optString("app", "sms"), done); return;
             default: done.done("ERROR: unknown action " + kind);
         }
+    }
+
+    // ---------- カレンダー（Google カレンダーと同期） ----------
+    interface CalendarJob { String run() throws Exception; }
+
+    /** カレンダーの読み取り（と書き込み）の許可をもらってから実行する */
+    private static void withCalendar(MainActivity a, boolean write, Done done, CalendarJob job) {
+        Runnable denied = () -> done.done("ERROR: カレンダーを使う許可がありません。スマホの設定 → アプリ → KIMI → 権限 で、カレンダーを許可してください");
+        Runnable run = () -> {
+            try { done.done(job.run()); }
+            catch (Exception e) { done.done("ERROR: カレンダーを操作できませんでした"); }
+        };
+        a.withPermission(Manifest.permission.READ_CALENDAR,
+                () -> { if (write) a.withPermission(Manifest.permission.WRITE_CALENDAR, run, denied); else run.run(); },
+                denied);
     }
 
     // ---------- リマインダー ----------
